@@ -1,0 +1,241 @@
+{
+  "main": {
+    "id": "19407cf9ddf75405",
+    "type": "split",
+    "children": [
+      {
+        "id": "55c9bc9d00126e6d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b987250c2ad1840b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "About.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "About"
+            }
+          },
+          {
+            "id": "50a259658ada53d3",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "04.LOC/List of Content 0201-0400.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "List of Content 0201-0400"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "d48a2f68a9d2998e",
+    "type": "split",
+    "children": [
+      {
+        "id": "974144181012dff8",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "6bd59f44b4959228",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "3faf85afb61da21b",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "519bfb9c9c264a4d",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "28f2a3e9fb2ef396",
+    "type": "split",
+    "children": [
+      {
+        "id": "adecb6b4f53d8b90",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2a8eedb95c637b93",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "RAW MD/0801-1000/0813 ประวัติศาสตร์ปัตตานี ยะลา นราธิวาส (3).md",
+                "collapseAll": false,
+                "extraContext": true,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for 0813 ประวัติศาสตร์ปัตตานี ยะลา นราธิวาส (3)"
+            }
+          },
+          {
+            "id": "e12f6139865b3ab2",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "by character/B.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from B"
+            }
+          },
+          {
+            "id": "1820e0ef851bbd6c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "49e1bf2827728676",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "9dcdec13db941a3c",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "RAW MD/0801-1000/0813 ประวัติศาสตร์ปัตตานี ยะลา นราธิวาส (3).md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of 0813 ประวัติศาสตร์ปัตตานี ยะลา นราธิวาส (3)"
+            }
+          }
+        ],
+        "currentTab": 4
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "50a259658ada53d3",
+  "lastOpenFiles": [
+    "01.RAW MD/0000-0200/0187 ปรัชญาการรื้อสร้างของเดอริดา.md",
+    "01.RAW MD/0000-0200/0186 โหมโรงเกี่ยวกับ Jacques Derrida.md",
+    "01.RAW MD/0000-0200/0129 นิทเช่ ในฐานะรากฐานแนวคิดทางปรัชญาหลังสมัยใหม่.md",
+    "Template.md",
+    "บทสัมภาษณ์ Noam Chomsky - สิงหาคม 2003.md",
+    "2003-01-01.md",
+    "04.LOC/List of Content 0000-0200.md",
+    "01.RAW MD/0000-0200/0123 สถาปัตยกรรมปกติ และที่ว่างที่ผิดปกติ.md",
+    "01.RAW MD/0201-0400/0308 บทสัมภาษณ์ Noam Chomsky - สิงหาคม 2003.md",
+    "01.RAW MD/0000-0200/0110 กระแสชาตินิยม.md",
+    "01.RAW MD/0000-0200/0109 กระแสชาตินิยม.md",
+    "01.RAW MD/0000-0200/0094 ยูรเกิน ฮาเบอร์มัส คิดอะไร (2).md",
+    "01.RAW MD/0000-0200/0093 ยูรเกิน ฮาเบอร์มัส คิดอะไร (1).md",
+    "01.RAW MD/0000-0200/0019 ภาษาของธรรมชาติ (language of nature).md",
+    "01.RAW MD/0000-0200/0043 ฟูโกสำหรับผู้เริ่มต้น (Foucault for Beginners).md",
+    "01.RAW MD/0000-0200/0061 เสวนาเรื่อง การศึกษาเพื่อสันติภาพ Education for Peace.md",
+    "01.RAW MD/0000-0200/0002 วิธีคิด.md",
+    "01.RAW MD/0401-0600/0410 ระเบียบวิธีวิจัยการสื่อสารเพื่อสุขภาพ.md",
+    "04.LOC/List of Content 0201-0400.md",
+    "04.LOC/List of Content 0401-0600.md",
+    "04.LOC/List of Content 1001-1200.md",
+    "04.LOC/List of Content 1201-1400.md",
+    "04.LOC/List of Content 1401-1600.md",
+    "04.LOC/List of Content 1601-1800.md",
+    "04.LOC/List of Content 0601-0800.md",
+    "04.LOC/List of Content 0801-1000.md",
+    "04.LOC",
+    "04.list",
+    "03.tag",
+    "01.RAW MD/1601-1800",
+    "01.RAW MD/1401-1600",
+    "01.RAW MD/1201-1400",
+    "01.RAW MD/1001-1200",
+    "01.RAW MD/0801-1000",
+    "01.RAW MD/0601-0800",
+    "01.RAW MD/0401-0600"
+  ]
+}
