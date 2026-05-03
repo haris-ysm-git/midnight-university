@@ -5,6 +5,7 @@ import { BacklinksPanel } from "./backlinks-panel";
 import Link from "next/link";
 import { CursorLight } from "./cursor-light";
 import { EmberParticles } from "./ember-particles";
+import { ReadingProgress } from "./reading-progress";
 
 interface ArticleLayoutProps {
   article: Article;
@@ -17,9 +18,10 @@ export function ArticleLayout({ article, backlinks, children }: ArticleLayoutPro
   const author = (frontmatter as any).author || "NA";
 
   return (
-    <article className="min-h-screen bg-[#1A1A1A] text-white pb-32 overflow-hidden">
+    <article className="min-h-screen bg-[#1A1A1A] text-white pb-32 overflow-hidden relative">
       <CursorLight />
       <EmberParticles />
+      <ReadingProgress />
       {/* Header */}
       <header className="pt-32 pb-16 px-6 md:px-16 max-w-4xl mx-auto border-b border-white/10">
         <div className="flex flex-col gap-4 mb-10">
@@ -77,6 +79,24 @@ export function ArticleLayout({ article, backlinks, children }: ArticleLayoutPro
       <div className="max-w-4xl mx-auto px-6 md:px-16 mt-14">
         <div className="article-prose">
           {children}
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="mt-32 pt-16 border-t border-white/10 flex flex-col md:flex-row gap-6">
+          <Link 
+            href="/"
+            className="flex-1 px-8 py-10 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-accent/40 transition-all group"
+          >
+            <div className="font-mono text-[10px] tracking-[0.3em] text-white/30 mb-4 uppercase">Return To</div>
+            <div className="text-xl md:text-2xl font-mono tracking-widest text-white group-hover:text-accent transition-colors">ARCHIVE</div>
+          </Link>
+          <Link 
+            href="/loc"
+            className="flex-1 px-8 py-10 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-accent/40 transition-all group"
+          >
+            <div className="font-mono text-[10px] tracking-[0.3em] text-white/30 mb-4 uppercase">Explore</div>
+            <div className="text-xl md:text-2xl font-mono tracking-widest text-white group-hover:text-accent transition-colors">CONTENTS</div>
+          </Link>
         </div>
 
         {/* Backlinks */}

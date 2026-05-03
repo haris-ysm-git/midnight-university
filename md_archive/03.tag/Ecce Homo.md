@@ -1,0 +1,4 @@
+---
+aliases:
+---
+by [[Friedrich Nietzsche]]

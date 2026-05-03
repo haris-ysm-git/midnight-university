@@ -1,0 +1,5 @@
+---
+aliases:
+  - ทุนนิยมสวัสดิการ
+---
+related [[Capitalism]]

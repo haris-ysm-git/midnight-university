@@ -1,0 +1,5 @@
+---
+aliases:
+  - postmodern
+  - หลังสมัยใหม่
+---

@@ -1,0 +1,5 @@
+---
+aliases:
+  - ชาตินิยมภาษา
+---
+related [[Nationalism]]

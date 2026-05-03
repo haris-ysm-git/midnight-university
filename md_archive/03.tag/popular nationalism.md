@@ -1,0 +1,5 @@
+---
+aliases:
+  - ชาตินิยมประชาชน
+---
+related [[Nationalism]]

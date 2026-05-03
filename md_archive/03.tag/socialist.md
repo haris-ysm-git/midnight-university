@@ -1,0 +1,5 @@
+---
+aliases:
+  - นักสังคมนิยม
+---
+related [[socialism]]

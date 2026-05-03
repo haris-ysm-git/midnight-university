@@ -1,0 +1,5 @@
+---
+aliases:
+  - ความเสมอภาค
+---
+related [[democracy]]

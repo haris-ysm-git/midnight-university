@@ -1,0 +1,5 @@
+---
+aliases:
+  - อำนาจการผลิต
+---
+related [[Marxism]]
