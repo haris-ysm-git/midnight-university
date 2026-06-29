@@ -219,10 +219,32 @@ export function getLOCBySlug(slug: string): LOCVolume | null {
 
 export interface RandomParagraph {
   text: string;
+  fullText: string;
   articleId: string;
   articleTitle: string;
   author: string;
   date: string;
+}
+
+function selectPhrase(text: string): string {
+  // Thai sentences don't have full stops, but often use spaces or punctuation
+  // Split by whitespace as an approximation
+  const fragments = text.split(/\s{2,}/).filter(f => f.trim().length > 20);
+  if (fragments.length <= 1) return text;
+  
+  const useFirst = Math.random() < 0.75;
+  if (useFirst) return fragments[0].trim();
+  
+  // Pick a random fragment from the rest
+  const randomIdx = Math.floor(Math.random() * fragments.length);
+  return fragments[randomIdx].trim();
+}
+
+/**
+ * Returns random tags from the 03.tag directory.
+ */
+export function getTagNames(): string[] {
+  return getHubFiles().sort(() => 0.5 - Math.random());
 }
 
 export function getRandomParagraphs(count: number): RandomParagraph[] {
@@ -230,8 +252,6 @@ export function getRandomParagraphs(count: number): RandomParagraph[] {
   const allParagraphs: RandomParagraph[] = [];
 
   allArticles.forEach(article => {
-    // Split by double newline or single newline if it looks like a new paragraph
-    // Remove headers and extra markdown
     const cleanedContent = article.content
       .replace(/^#+.*$/gm, '') // Remove headers
       .replace(/!\[.*\]\(.*\)/g, '') // Remove images
@@ -241,18 +261,12 @@ export function getRandomParagraphs(count: number): RandomParagraph[] {
     
     paragraphs.forEach(p => {
       const trimmed = p.trim();
-      // Only keep paragraphs with some substance (at least 20 chars)
-      // and not code blocks or lists
-      if (trimmed.length > 50 && !trimmed.startsWith('```') && !trimmed.startsWith('-') && !trimmed.startsWith('*')) {
-        // Strip markdown for preview
+      if (trimmed.length > 80 && !trimmed.startsWith('```') && !trimmed.startsWith('-') && !trimmed.startsWith('*')) {
         const plainText = stripMarkdown(trimmed);
         
-        // Limit word count (approx)
-        const words = plainText.split(/\s+/);
-        const preview = words.slice(0, 50).join(' ') + (words.length > 50 ? '...' : '');
-
         allParagraphs.push({
-          text: preview,
+          text: selectPhrase(plainText),
+          fullText: plainText,
           articleId: article.id,
           articleTitle: article.frontmatter.title_th,
           author: article.frontmatter.author || 'NA',
