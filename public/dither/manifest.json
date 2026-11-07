@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "tiles": [
+    {
+      "id": "dither-1",
+      "filename": "dither-1.svg",
+      "width": 300,
+      "height": 300,
+      "caption": "Night Wave",
+      "sizeBytes": 1420
+    },
+    {
+      "id": "dither-2",
+      "filename": "dither-2.svg",
+      "width": 300,
+      "height": 300,
+      "caption": "Horizon Shift",
+      "sizeBytes": 1580
+    },
+    {
+      "id": "dither-3",
+      "filename": "dither-3.svg",
+      "width": 300,
+      "height": 300,
+      "caption": "Monolith Lattice",
+      "sizeBytes": 1650
+    },
+    {
+      "id": "dither-4",
+      "filename": "dither-4.svg",
+      "width": 300,
+      "height": 300,
+      "caption": "Orbit Embers",
+      "sizeBytes": 1510
+    }
+  ]
+}

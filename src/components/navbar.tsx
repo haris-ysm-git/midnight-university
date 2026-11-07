@@ -1,75 +1,175 @@
 "use client";
 
 import Link from "next/link";
-import { Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { Icon } from "./icons";
+
+const NAV_ITEMS = [
+  { href: "/", label: "Archive", icon: "moon" as const },
+  { href: "/random", label: "Random", icon: "shuffle" as const },
+  { href: "/feed", label: "Feed", icon: "feed" as const },
+  { href: "/loc", label: "Contents", icon: "list" as const },
+  { href: "/index-az", label: "Index", icon: "book" as const },
+  { href: "/graph", label: "Graph", icon: "graph" as const },
+];
 
 export function Navbar({ onOpenSearch }: { onOpenSearch: () => void }) {
   const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [lang, setLang] = useState<"TH" | "EN">("TH");
 
+  // Close mobile drawer on route change
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [mobileMenuOpen]);
 
-  // Use a transparent navbar if on home or graph page initially, but add bg when scrolled
-  const isSpecialPage = pathname === "/" || pathname === "/graph";
-  const bgClass = scrolled || !isSpecialPage ? "bg-[#1A1A1A]/90 backdrop-blur-md border-b border-white/5" : "bg-transparent border-transparent";
-
-  const links = [
-    { href: "/", label: "ARCHIVE" },
-    { href: "/random", label: "RANDOM" },
-    { href: "/feed", label: "FEED" },
-    { href: "/loc", label: "CONTENTS" },
-    { href: "/index-az", label: "A-Z" },
-    { href: "/graph", label: "GRAPH" },
-  ];
+  const toggleLanguage = () => {
+    setLang((prev) => (prev === "TH" ? "EN" : "TH"));
+  };
 
   return (
-    <nav className={`fixed top-0 inset-x-0 z-40 transition-all duration-300 ${bgClass}`}>
-      <div className="max-w-[1600px] mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
-        
-        <Link href="/" className="font-mono text-[10px] md:text-xs tracking-[0.2em] text-white/80 hover:text-white transition-colors">
-          MIDNIGHT<br className="md:hidden" /> UNIVERSITY
+    <>
+      <header className="site-header">
+        <Link href="/" className="wordmark">
+          Midnight University
         </Link>
 
-        <div className="flex items-center gap-6 md:gap-10">
-          <div className="hidden md:flex items-center gap-8">
-            {links.map(link => {
-              const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
-              return (
-                <Link 
-                  key={link.href} 
-                  href={link.href}
-                  className={`font-mono text-[10px] tracking-[0.2em] transition-colors ${
-                    isActive ? "text-accent" : "text-white/40 hover:text-white/80"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
+        {/* Desktop Navigation */}
+        <nav aria-label="Main navigation" className="desktop-nav">
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href || pathname.startsWith(item.href + "/");
 
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={onOpenSearch}
-              className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group"
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={isActive ? "active" : ""}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Actions */}
+        <div className="header-actions">
+          <button
+            type="button"
+            aria-label="Search archive"
+            className="icon-button search-button"
+            onClick={onOpenSearch}
+          >
+            <Icon name="search" size={16} />
+            <span>Search</span>
+            <kbd>⌘K</kbd>
+          </button>
+
+          <button
+            type="button"
+            className="language"
+            onClick={toggleLanguage}
+            title="Toggle display title language"
+          >
+            {lang === "TH" ? (
+              <>TH <span>/ EN</span></>
+            ) : (
+              <><span>TH /</span> EN</>
+            )}
+          </button>
+
+          <button
+            type="button"
+            aria-label="Open navigation menu"
+            className="icon-button mobile-menu"
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Icon name="menu" size={22} />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Drawer */}
+      {mobileMenuOpen && (
+        <div className="mobile-drawer">
+          <div className="drawer-head">
+            <div className="meta">NAVIGATE ARCHIVE</div>
+            <button
+              type="button"
+              aria-label="Close menu"
+              className="icon-button"
+              onClick={() => setMobileMenuOpen(false)}
             >
-              <Search className="w-4 h-4" />
-              <span className="hidden md:inline font-mono text-[10px] tracking-widest mt-0.5">SEARCH</span>
-              <kbd className="hidden lg:inline-flex items-center h-5 px-1.5 font-sans text-[10px] font-medium border border-white/10 rounded ml-2 group-hover:border-white/30 transition-colors">
-                ⌘K
-              </kbd>
+              <Icon name="close" size={24} />
             </button>
           </div>
+
+          {NAV_ITEMS.map((item, index) => {
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href || pathname.startsWith(item.href + "/");
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{ color: isActive ? "var(--gold-bright)" : "var(--text)" }}
+              >
+                <span>0{index + 1}</span>
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              onOpenSearch();
+            }}
+          >
+            <span>07</span>
+            Search
+          </button>
         </div>
-      </div>
-    </nav>
+      )}
+
+      {/* Mobile Bottom Tabs */}
+      <nav aria-label="Mobile bottom navigation" className="mobile-tabs">
+        {NAV_ITEMS.slice(0, 5).map((item) => {
+          const isActive =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname === item.href || pathname.startsWith(item.href + "/");
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={isActive ? "active" : ""}
+            >
+              <Icon name={item.icon} size={18} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </>
   );
 }

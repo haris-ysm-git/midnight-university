@@ -1,123 +1,167 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useReadingSettings } from "@/lib/reading-settings";
+
+interface Particle {
+  x: number;
+  y: number;
+  size: number;
+  speedX: number;
+  speedY: number;
+  opacity: number;
+  life: number;
+  maxLife: number;
+}
 
 export function EmberParticles() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { settings } = useReadingSettings();
 
   useEffect(() => {
+    if (!settings.ambience) return;
+    if (typeof window === "undefined") return;
+
+    // Checks: Touch, Save-Data, Reduced Motion
+    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const saveData = (navigator as unknown as { connection?: { saveData?: boolean } })?.connection?.saveData;
+
+    if (isTouch || prefersReducedMotion || saveData) {
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     let animationFrameId: number;
-    let width: number;
-    let height: number;
+    let width = 0;
+    let height = 0;
+    let isTabVisible = !document.hidden;
 
+    const maxParticles = Math.min(36, Math.floor(window.innerWidth / 40));
     const particles: Particle[] = [];
-    const particleCount = 18; // Reduced count for less distraction
 
-    class Particle {
-      x!: number;
-      y!: number;
-      size!: number;
-      speedX!: number;
-      speedY!: number;
-      opacity!: number;
-      life!: number;
-      maxLife!: number;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      constructor() {
-        this.maxLife = 150 + Math.random() * 250; // Longer life for slower drift
-        this.reset();
-      }
-
-      reset() {
-        // Start from bottom or right side
-        if (Math.random() > 0.5) {
-          this.x = width + Math.random() * 20;
-          this.y = Math.random() * height;
-        } else {
-          this.x = Math.random() * width;
-          this.y = height + Math.random() * 20;
-        }
-        
-        this.size = 0.3 + Math.random() * 1.2; // Smaller dots
-        // Slower movement towards top-left
-        this.speedX = -(0.2 + Math.random() * 0.8);
-        this.speedY = -(0.2 + Math.random() * 0.8);
-        this.opacity = 0;
-        this.life = 0;
-      }
-
-      update() {
-        this.x += this.speedX + (Math.sin(this.life / 30) * 0.1); // Gentler wobble
-        this.y += this.speedY;
-        this.life++;
-
-        if (this.life < 40) {
-          this.opacity += 0.02; // Slower fade in
-        } else if (this.life > this.maxLife - 60) {
-          this.opacity -= 0.01; // Slower fade out
-        }
-
-        if (this.life >= this.maxLife || this.x < -10 || this.y < -10) {
-          this.reset();
-        }
-      }
-
-      draw() {
-        if (!ctx) return;
-        ctx.fillStyle = `rgba(200, 168, 130, ${Math.max(0, this.opacity * 0.35)})`; // Dimmer particles
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    const init = () => {
+    const resize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-      
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+    };
+
+    const createParticle = (): Particle => {
+      const startFromBottom = Math.random() > 0.4;
+      return {
+        x: startFromBottom ? Math.random() * width : width + Math.random() * 20,
+        y: startFromBottom ? height + Math.random() * 30 : Math.random() * height,
+        size: 0.6 + Math.random() * 1.4,
+        speedX: -(0.15 + Math.random() * 0.45),
+        speedY: -(0.25 + Math.random() * 0.65),
+        opacity: 0,
+        life: 0,
+        maxLife: 200 + Math.random() * 260,
+      };
+    };
+
+    const init = () => {
+      resize();
       particles.length = 0;
-      for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle());
+      for (let i = 0; i < maxParticles; i++) {
+        const p = createParticle();
+        // Stagger initial progress
+        p.life = Math.random() * p.maxLife * 0.8;
+        particles.push(p);
       }
     };
 
-    const animate = () => {
+    let lastTime = performance.now();
+    let slowFrameCount = 0;
+
+    const render = (time: number) => {
+      if (!isTabVisible) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+
+      const delta = time - lastTime;
+      lastTime = time;
+
+      // Throttle if frame rate drops drastically (< 25fps)
+      if (delta > 40) {
+        slowFrameCount++;
+        if (slowFrameCount > 60) {
+          // Permanently stop if system is struggling
+          return;
+        }
+      } else {
+        slowFrameCount = Math.max(0, slowFrameCount - 1);
+      }
+
       ctx.clearRect(0, 0, width, height);
-      particles.forEach((p) => {
-        p.update();
-        p.draw();
-      });
-      animationFrameId = requestAnimationFrame(animate);
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.speedX + Math.sin(p.life / 25) * 0.15;
+        p.y += p.speedY;
+        p.life++;
+
+        // Fade in and out
+        if (p.life < 50) {
+          p.opacity = (p.life / 50) * 0.28;
+        } else if (p.life > p.maxLife - 60) {
+          p.opacity = ((p.maxLife - p.life) / 60) * 0.28;
+        }
+
+        if (p.life >= p.maxLife || p.x < -20 || p.y < -20) {
+          particles[i] = createParticle();
+        } else {
+          ctx.fillStyle = `rgba(201, 168, 124, ${Math.max(0, p.opacity)})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(render);
     };
 
-    const handleResize = () => {
-      init();
+    const handleVisibilityChange = () => {
+      isTabVisible = !document.hidden;
+      if (isTabVisible) {
+        lastTime = performance.now();
+      }
     };
 
     init();
-    animate();
+    animationFrameId = requestAnimationFrame(render);
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", resize, { passive: true });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [settings.ambience]);
+
+  if (!settings.ambience) return null;
 
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-[9998]"
-      style={{ opacity: 0.8 }}
+      aria-hidden="true"
+      className="fixed inset-0 pointer-events-none"
+      style={{
+        zIndex: 0,
+        opacity: 0.85,
+      }}
     />
   );
 }

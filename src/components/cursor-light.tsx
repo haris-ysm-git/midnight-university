@@ -1,75 +1,67 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { motion, useSpring, useMotionValue, animate } from "framer-motion";
+import { useEffect } from "react";
+import { useReadingSettings } from "@/lib/reading-settings";
 
 export function CursorLight() {
-  const [isHoveringLink, setIsHoveringLink] = useState(false);
-  const cursorX = useMotionValue(-100);
-  const cursorY = useMotionValue(-100);
-  
-  // Smooth the movement
-  const springX = useSpring(cursorX, { stiffness: 500, damping: 50, mass: 0.5 });
-  const springY = useSpring(cursorY, { stiffness: 500, damping: 50, mass: 0.5 });
-
-  const [flicker, setFlicker] = useState(1);
+  const { settings } = useReadingSettings();
 
   useEffect(() => {
-    const moveCursor = (e: MouseEvent) => {
-      cursorX.set(e.clientX);
-      cursorY.set(e.clientY);
-      
-      const target = e.target as HTMLElement;
-      if (target.closest('a') || target.closest('button')) {
-        setIsHoveringLink(true);
-      } else {
-        setIsHoveringLink(false);
+    // Check if touch device, reduced motion, or ambience disabled
+    if (!settings.ambience) return;
+    if (typeof window === "undefined") return;
+
+    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (isTouch || prefersReducedMotion) return;
+
+    let rafId: number | null = null;
+    let targetX = -200;
+    let targetY = -200;
+    let currentX = -200;
+    let currentY = -200;
+
+    const onMouseMove = (e: MouseEvent) => {
+      targetX = e.clientX;
+      targetY = e.clientY;
+      if (rafId === null) {
+        rafId = requestAnimationFrame(updateCursor);
       }
     };
 
-    window.addEventListener("mousemove", moveCursor);
-    return () => window.removeEventListener("mousemove", moveCursor);
-  }, [cursorX, cursorY]);
+    const updateCursor = () => {
+      // Smooth lerp
+      currentX += (targetX - currentX) * 0.15;
+      currentY += (targetY - currentY) * 0.15;
 
-  // Candle flicker effect
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    const runFlicker = () => {
-      // Randomly change brightness/size
-      const nextFlicker = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-      setFlicker(nextFlicker);
-      
-      const nextInterval = 50 + Math.random() * 150; // fast random intervals
-      timeoutId = setTimeout(runFlicker, nextInterval);
+      document.documentElement.style.setProperty("--mx", `${currentX.toFixed(1)}px`);
+      document.documentElement.style.setProperty("--my", `${currentY.toFixed(1)}px`);
+
+      if (Math.abs(targetX - currentX) > 0.5 || Math.abs(targetY - currentY) > 0.5) {
+        rafId = requestAnimationFrame(updateCursor);
+      } else {
+        rafId = null;
+      }
     };
 
-    runFlicker();
-    return () => clearTimeout(timeoutId);
-  }, []);
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [settings.ambience]);
+
+  if (!settings.ambience) return null;
 
   return (
-    <motion.div
-      className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-screen"
+    <div
+      aria-hidden="true"
+      className="cursor-light-glow"
       style={{
-        x: springX,
-        y: springY,
+        zIndex: 0,
+        pointerEvents: "none",
       }}
-    >
-      <motion.div
-        animate={{
-          scale: isHoveringLink ? 1.5 : flicker,
-          opacity: isHoveringLink ? 0.9 : flicker * 0.6,
-        }}
-        transition={{
-          scale: { type: "spring", stiffness: 250, damping: 25 },
-          opacity: { duration: 0.1 }
-        }}
-        className="w-48 h-48 -ml-24 -mt-24 rounded-full blur-[60px]"
-        style={{
-          background: "radial-gradient(circle, rgba(200, 168, 130, 0.6) 0%, rgba(200, 168, 130, 0.2) 50%, transparent 80%)",
-        }}
-      />
-    </motion.div>
+    />
   );
 }
