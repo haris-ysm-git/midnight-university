@@ -1,69 +1,77 @@
-import { Document } from 'flexsearch';
-
-export interface SearchResult {
+export interface SearchArticleItem {
   id: string;
+  type: "article";
   title_th: string;
   title_en: string;
-  description: string;
+  author: string;
   tags: string[];
+  description: string;
 }
 
-let searchIndex: any = null;
-let searchStore: Map<string, SearchResult> = new Map();
-let isBuilt = false;
+export interface SearchKeywordItem {
+  id: string;
+  type: "keyword";
+  title_th: string;
+  title_en: string;
+  author: string;
+  tags: string[];
+  description: string;
+}
 
-export async function initSearchIndex() {
-  if (isBuilt) return;
+export interface SearchResultsPayload {
+  articles: SearchArticleItem[];
+  keywords: SearchKeywordItem[];
+}
 
-  searchIndex = new Document({
-    document: {
-      id: 'id',
-      index: ['title_th', 'title_en', 'description', 'tags'],
-    },
-    tokenize: 'full',
-  });
+let cachedData: SearchResultsPayload | null = null;
+let isLoading = false;
 
+export async function initSearchIndex(): Promise<SearchResultsPayload | null> {
+  if (cachedData) return cachedData;
+  if (isLoading) return null;
+
+  isLoading = true;
   try {
-    const res = await fetch('/api/search');
-    const articles: SearchResult[] = await res.json();
-    
-    articles.forEach((article) => {
-      const doc = {
-        id: article.id,
-        title_th: article.title_th,
-        title_en: article.title_en,
-        description: article.description,
-        tags: article.tags.join(' '),
-      };
-      
-      searchIndex.add(doc);
-      searchStore.set(article.id, article);
-    });
-    
-    isBuilt = true;
+    const res = await fetch("/api/search");
+    if (!res.ok) throw new Error("Search API error");
+    const data = await res.json();
+    cachedData = data;
+    return cachedData;
   } catch (e) {
-    console.error("Failed to build search index", e);
+    console.error("Failed to load search data", e);
+    return null;
+  } finally {
+    isLoading = false;
   }
 }
 
-export function searchArticles(query: string): SearchResult[] {
-  if (!query || !isBuilt) return [];
-  
-  const results = searchIndex.search(query, 10);
-  
-  const uniqueIds = new Set<string>();
-  
-  results.forEach((result: any) => {
-    result.result.forEach((id: string) => {
-      uniqueIds.add(id);
-    });
+export function performSearch(query: string): SearchResultsPayload {
+  if (!query || !cachedData) {
+    return { articles: [], keywords: [] };
+  }
+
+  const q = query.toLowerCase().trim();
+
+  const matchedArticles = cachedData.articles.filter((a) => {
+    return (
+      a.id.includes(q) ||
+      a.title_th.toLowerCase().includes(q) ||
+      a.title_en.toLowerCase().includes(q) ||
+      a.author.toLowerCase().includes(q) ||
+      a.tags.some((t) => t.toLowerCase().includes(q))
+    );
   });
 
-  const searchResults: SearchResult[] = [];
-  uniqueIds.forEach(id => {
-    const item = searchStore.get(id);
-    if (item) searchResults.push(item);
+  const matchedKeywords = cachedData.keywords.filter((k) => {
+    return (
+      k.title_th.toLowerCase().includes(q) ||
+      k.title_en.toLowerCase().includes(q) ||
+      k.tags.some((t) => t.toLowerCase().includes(q))
+    );
   });
 
-  return searchResults;
+  return {
+    articles: matchedArticles.slice(0, 12),
+    keywords: matchedKeywords.slice(0, 6),
+  };
 }

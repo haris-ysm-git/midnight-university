@@ -1,161 +1,227 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Search, X } from "lucide-react";
-import { searchArticles, SearchResult, initSearchIndex } from "@/lib/search-index";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ACCENT, BG, EASE } from "@/lib/design-tokens";
+import { initSearchIndex, performSearch, SearchResultsPayload } from "@/lib/search-index";
+import { Icon } from "@/components/icons";
+import { Thai } from "@/components/thai";
 
-export function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface SearchOverlayProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [results, setResults] = useState<SearchResultsPayload>({
+    articles: [],
+    keywords: [],
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Handle search dynamically
-  useEffect(() => {
-    if (query.trim().length > 0) {
-      setResults(searchArticles(query));
-      setSelectedIndex(0);
-    } else {
-      setResults([]);
-    }
-  }, [query]);
-
-  // Handle keyboard shortcuts (Cmd+K / Ctrl+K to open handled in parent)
   useEffect(() => {
     if (isOpen) {
       initSearchIndex().then(() => {
-        setTimeout(() => inputRef.current?.focus(), 100);
+        setTimeout(() => inputRef.current?.focus(), 50);
       });
     } else {
       setQuery("");
-      setResults([]);
+      setResults({ articles: [], keywords: [] });
     }
   }, [isOpen]);
 
   useEffect(() => {
+    if (query.trim().length > 0) {
+      setResults(performSearch(query));
+    } else {
+      setResults({ articles: [], keywords: [] });
+    }
+  }, [query]);
+
+  // Handle ESC key
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      
-      if (e.key === "Escape") {
-        onClose();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSelectedIndex(prev => (prev < results.length - 1 ? prev + 1 : prev));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedIndex(prev => (prev > 0 ? prev - 1 : prev));
-      } else if (e.key === "Enter" && results.length > 0) {
-        e.preventDefault();
-        router.push(`/article/${results[selectedIndex].id}`);
+      if (isOpen && e.key === "Escape") {
         onClose();
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, results, selectedIndex, router, onClose]);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const hasArticles = results.articles.length > 0;
+  const hasKeywords = results.keywords.length > 0;
+  const hasResults = hasArticles || hasKeywords;
+
+  const navigateTo = (url: string) => {
+    router.push(url);
+    onClose();
+  };
+
+  const recentChips = [
+    "ชายแดนใต้",
+    "Nationalism",
+    "สิทธิมนุษยชน",
+    "Derrida",
+    "ประวัติศาสตร์",
+  ];
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: EASE }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ duration: 0.4, ease: EASE }}
-            className="fixed inset-x-0 top-[10vh] z-50 mx-auto max-w-3xl w-[90vw] bg-[#1A1A1A] border border-white/10 shadow-2xl rounded-sm overflow-hidden"
-            style={{ backgroundColor: BG }}
-          >
-            {/* Search Input */}
-            <div className="flex items-center px-6 py-4 border-b border-white/10">
-              <Search className="w-5 h-5 text-white/40 mr-4" />
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Search by title, keyword, or content... (Thai & English)"
-                className="flex-1 bg-transparent text-white font-thai text-xl md:text-2xl outline-none placeholder:text-white/20"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <button onClick={onClose} className="p-2 text-white/40 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+    <div
+      aria-modal="true"
+      role="dialog"
+      className="search-overlay fixed inset-0 z-[200] flex justify-center items-start pt-[10vh]"
+    >
+      {/* Background Dim Scrim */}
+      <div
+        className="search-scrim fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-            {/* Results Area */}
-            <div className="max-h-[60vh] overflow-y-auto">
-              {query && results.length === 0 ? (
-                <div className="py-16 text-center text-white/40 font-mono text-sm">
-                  No results found for "{query}"
-                </div>
-              ) : (
-                <div className="py-2">
-                  {results.map((result, idx) => {
-                    const isSelected = idx === selectedIndex;
-                    return (
-                      <div
-                        key={result.id}
-                        className={`px-6 py-4 mx-2 rounded-sm cursor-pointer transition-colors ${
-                          isSelected ? "bg-white/10" : "hover:bg-white/5"
-                        }`}
-                        onClick={() => {
-                          router.push(`/article/${result.id}`);
-                          onClose();
-                        }}
-                        onMouseEnter={() => setSelectedIndex(idx)}
+      {/* Main Search Modal Panel */}
+      <div className="search-panel relative w-full max-w-2xl bg-[var(--raised)] border border-[var(--line-strong)] shadow-2xl rounded-xs overflow-hidden mx-4 z-10 max-h-[76vh] flex flex-col">
+        {/* Search Input Bar */}
+        <div className="search-input flex items-center gap-4 px-5 py-3 border-b border-[var(--line-strong)] bg-[var(--bg)]">
+          <Icon name="search" size={18} className="text-[var(--gold)] shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="ค้นหาในคลัง / Search the archive..."
+            className="flex-1 bg-transparent text-base md:text-lg text-[var(--text)] placeholder-[var(--muted)] outline-none font-thai py-2"
+          />
+          <kbd className="font-mono text-[10px] text-[var(--muted)] border border-[var(--line)] px-2 py-0.5 rounded-2xs uppercase">
+            ESC
+          </kbd>
+        </div>
+
+        {/* Modal Body */}
+        <div className="overflow-y-auto flex-1 p-6">
+          {!query.trim() ? (
+            /* Empty State: Recent searches & hint */
+            <div className="search-empty space-y-4">
+              <div className="meta font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">
+                Recent searches
+              </div>
+              <div className="recent flex flex-wrap gap-2">
+                {recentChips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setQuery(chip)}
+                    className="border border-[var(--line)] px-3 py-1.5 font-mono text-xs text-[var(--secondary)] hover:border-[var(--gold)] hover:text-[var(--gold-bright)] transition-colors rounded-xs"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+              <p className="font-thai text-sm text-[var(--muted)] pt-3 border-t border-[var(--line)] leading-relaxed">
+                ค้นได้ทั้งชื่อเรื่อง ผู้เขียน บุคคล และคำสำคัญ (ทั้งภาษาไทยและอังกฤษ)
+              </p>
+            </div>
+          ) : hasResults ? (
+            /* Results State */
+            <div className="search-results space-y-6">
+              {/* Articles Section */}
+              {hasArticles && (
+                <div>
+                  <div className="meta font-mono text-[10px] uppercase tracking-widest text-[var(--muted)] mb-3">
+                    Articles · {results.articles.length}
+                  </div>
+                  <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
+                    {results.articles.map((art) => (
+                      <button
+                        key={art.id}
+                        type="button"
+                        onClick={() => navigateTo(`/article/${art.id}`)}
+                        className="w-full text-left py-3.5 px-2 flex items-center justify-between hover:bg-[var(--sunken)]/60 transition-colors group"
                       >
-                        <div className="flex items-start gap-4">
-                          <div className="text-[10px] tracking-[0.2em] text-accent mt-1.5 min-w-[36px]">
-                            {result.id}
-                          </div>
+                        <div className="flex items-baseline gap-4 pr-4">
+                          <span className="result-id font-mono text-xs text-[var(--gold)] font-semibold shrink-0">
+                            {art.id}
+                          </span>
                           <div>
-                            <div className={`font-thai text-xl mb-1 ${isSelected ? "text-white" : "text-white/90"}`}>
-                              {result.title_th}
-                            </div>
-                            <div className="font-serif text-sm text-white/50 italic mb-2 line-clamp-1">
-                              {result.title_en}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {result.tags.slice(0, 3).map(tag => (
-                                <span key={tag} className="text-[9px] tracking-widest text-white/30 uppercase">
-                                  #{tag}
-                                </span>
-                              ))}
-                            </div>
+                            <strong className="font-thai text-sm md:text-base font-normal text-[var(--text)] group-hover:text-[var(--gold-bright)] transition-colors block leading-snug">
+                              <Thai>{art.title_th}</Thai>
+                            </strong>
+                            {art.title_en && (
+                              <em className="font-serif italic text-xs text-[var(--secondary)] block mt-0.5 truncate max-w-lg">
+                                {art.title_en}
+                              </em>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                        <Icon
+                          name="arrow"
+                          size={12}
+                          className="text-[var(--muted)] group-hover:text-[var(--gold)] shrink-0 transition-transform group-hover:translate-x-0.5"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Keywords Section */}
+              {hasKeywords && (
+                <div>
+                  <div className="meta font-mono text-[10px] uppercase tracking-widest text-[var(--muted)] mb-3">
+                    Keywords & people
+                  </div>
+                  <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
+                    {results.keywords.map((kw) => (
+                      <button
+                        key={kw.id}
+                        type="button"
+                        onClick={() => navigateTo(`/keyword/${encodeURIComponent(kw.id)}`)}
+                        className="w-full text-left py-3 px-2 flex items-center justify-between hover:bg-[var(--sunken)]/60 transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="result-id text-[var(--gold)] text-sm shrink-0">
+                            ◇
+                          </span>
+                          <div>
+                            <strong className="font-serif text-sm font-normal text-[var(--text)] group-hover:text-[var(--gold-bright)] transition-colors block">
+                              {kw.title_th}
+                            </strong>
+                            <em className="font-mono text-[10px] text-[var(--muted)] block">
+                              Keyword archive
+                            </em>
+                          </div>
+                        </div>
+                        <Icon
+                          name="arrow"
+                          size={12}
+                          className="text-[var(--muted)] group-hover:text-[var(--gold)] shrink-0"
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Footer */}
-            <div className="px-6 py-3 border-t border-white/5 bg-black/20 flex justify-between items-center text-[10px] font-mono tracking-widest text-white/30">
-              <div className="flex gap-4">
-                <span><kbd className="font-sans px-1.5 py-0.5 rounded border border-white/10 bg-white/5 mr-1">↑</kbd><kbd className="font-sans px-1.5 py-0.5 rounded border border-white/10 bg-white/5 mr-1">↓</kbd> to navigate</span>
-                <span><kbd className="font-sans px-1.5 py-0.5 rounded border border-white/10 bg-white/5 mr-1">↵</kbd> to select</span>
-                <span><kbd className="font-sans px-1.5 py-0.5 rounded border border-white/10 bg-white/5 mr-1">ESC</kbd> to close</span>
-              </div>
+          ) : (
+            /* No Results State */
+            <div className="no-results text-center py-12 space-y-3">
+              <span className="font-serif text-5xl text-[var(--gold)] opacity-70 block mb-2">
+                ○
+              </span>
+              <h3 className="font-thai text-xl text-[var(--text)] font-normal">
+                ไม่พบข้อความที่ตรงกัน
+              </h3>
+              <p className="font-thai text-xs sm:text-sm text-[var(--muted)] max-w-sm mx-auto leading-relaxed">
+                ลองค้นหาด้วยคำที่กว้างขึ้น ตรวจการสะกด หรือค้นหาด้วยชื่อผู้เขียนหรือรหัสบทความ
+              </p>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

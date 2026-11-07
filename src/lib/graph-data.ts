@@ -1,129 +1,113 @@
-import { getAllArticles, getHubFiles } from './content';
+import { getAllArticles, getAllTagNotes } from "./content";
+import { CATEGORIES, getCategoryForTag } from "./categories";
 
-export interface GraphNode {
+export interface HubNodeData {
   id: string;
   name: string;
-  val: number;
+  count: number;
+  category: string;
   color: string;
-  group: string;
+  glyph: string;
+  x: number; // percentage 0-100
+  y: number; // percentage 0-100
+  articles: Array<{
+    id: string;
+    title: string;
+    date: string;
+  }>;
 }
 
-export interface GraphLink {
-  source: string;
-  target: string;
+export interface GraphDataset {
+  hubs: HubNodeData[];
+  categories: Array<{
+    name: string;
+    color: string;
+    glyph: string;
+  }>;
 }
 
-export interface GraphData {
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
-
-function getColorForTag(tag: string): string {
-  // Simple deterministic color generation based on tag
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777215)).toString(16);
-  return '#' + '000000'.substring(0, 6 - color.length) + color;
-}
-
-export function getGraphData(): GraphData {
+export function getGraphDataset(): GraphDataset {
   const articles = getAllArticles();
-  const hubFiles = getHubFiles();
-  
-  const nodes: GraphNode[] = [];
-  const links: GraphLink[] = [];
-  
-  // First pass: create all article nodes
-  articles.forEach(article => {
-    const primaryTag = article.frontmatter.tags[0] || 'Uncategorized';
-    nodes.push({
-      id: article.id,
-      name: `${article.frontmatter.title_th} | ${article.frontmatter.title_en}`,
-      val: 2, // size
-      color: getColorForTag(primaryTag),
-      group: primaryTag,
-    });
-  });
+  const tagNotes = getAllTagNotes();
 
-  // Create hub nodes
-  hubFiles.forEach(hub => {
-    nodes.push({
-      id: `hub-${hub}`,
-      name: hub,
-      val: 4, // bigger size for hubs
-      color: '#C8A882', // ACCENT
-      group: 'hub',
-    });
-  });
-  
-  // Second pass: create links
-  articles.forEach(article => {
-    // 1. Link to its own tags if they match a hub
-    article.frontmatter.tags.forEach(tag => {
-      if (hubFiles.includes(tag) || hubFiles.includes(tag.toLowerCase())) {
-        links.push({
-          source: article.id,
-          target: `hub-${tag}`
-        });
-        const hubNode = nodes.find(n => n.id === `hub-${tag}`);
-        if (hubNode) hubNode.val += 0.5;
+  // Aggregate articles per tag
+  const tagMap = new Map<string, Array<{ id: string; title: string; date: string }>>();
+
+  for (const a of articles) {
+    for (const tag of a.frontmatter.tags) {
+      const cleanTag = tag.trim();
+      if (!tagMap.has(cleanTag)) {
+        tagMap.set(cleanTag, []);
       }
-    });
+      tagMap.get(cleanTag)!.push({
+        id: a.id,
+        title: a.frontmatter.title_th,
+        date: a.frontmatter.date,
+      });
+    }
+  }
 
-    // 2. Find wiki links in content
-    const content = article.content;
-    const linkRegex = /\[\[(.*?)\]\]/g;
-    let match;
-    
-    while ((match = linkRegex.exec(content)) !== null) {
-      const linkedTitle = match[1].trim();
-      
-      // Try to find the target article
-      const targetArticle = articles.find(a => 
-        a.frontmatter.title_th === linkedTitle || 
-        a.frontmatter.title_en === linkedTitle ||
-        a.id === linkedTitle
+  // Also include tag notes with at least 1 reference
+  for (const note of tagNotes) {
+    if (!tagMap.has(note.title)) {
+      const matching = articles.filter(
+        (a) =>
+          a.content.includes(note.title) ||
+          note.aliases.some((alias) => a.content.includes(alias))
       );
-      
-      if (targetArticle && targetArticle.id !== article.id) {
-        // avoid duplicates
-        const existingLink = links.find(l => 
-          (l.source === article.id && l.target === targetArticle.id) ||
-          (l.source === targetArticle.id && l.target === article.id)
+      if (matching.length > 0) {
+        tagMap.set(
+          note.title,
+          matching.map((m) => ({
+            id: m.id,
+            title: m.frontmatter.title_th,
+            date: m.frontmatter.date,
+          }))
         );
-        
-        if (!existingLink) {
-          links.push({
-            source: article.id,
-            target: targetArticle.id
-          });
-          
-          // Increase node value (size) based on connections
-          const sourceNode = nodes.find(n => n.id === article.id);
-          const targetNode = nodes.find(n => n.id === targetArticle.id);
-          if (sourceNode) sourceNode.val += 0.5;
-          if (targetNode) targetNode.val += 0.5;
-        }
-      } else if (hubFiles.includes(linkedTitle)) {
-        // Link to hub if it matches
-        const existingLink = links.find(l => 
-          (l.source === article.id && l.target === `hub-${linkedTitle}`) ||
-          (l.source === `hub-${linkedTitle}` && l.target === article.id)
-        );
-        
-        if (!existingLink) {
-          links.push({
-            source: article.id,
-            target: `hub-${linkedTitle}`
-          });
-          const hubNode = nodes.find(n => n.id === `hub-${linkedTitle}`);
-          if (hubNode) hubNode.val += 0.5;
-        }
       }
     }
+  }
+
+  // Sort by article count descending and take top 40-50 hubs
+  const sortedTags = Array.from(tagMap.entries()).sort((a, b) => b[1].length - a[1].length);
+  const topHubs = sortedTags.slice(0, 48);
+
+  // Position nodes in an organic circular/spiral distribution
+  const hubs: HubNodeData[] = topHubs.map(([tag, taggedArticles], index) => {
+    const cat = getCategoryForTag(tag);
+    const count = taggedArticles.length;
+
+    // Golden angle spiral distribution
+    const phi = index * 137.5 * (Math.PI / 180);
+    const radius = 18 + Math.sqrt(index) * 8.5; // distributed between ~18% and ~45% radius
+    const cx = 50 + radius * Math.cos(phi);
+    const cy = 50 + radius * Math.sin(phi);
+
+    // Clamp within 8% to 92%
+    const x = Math.max(10, Math.min(90, Math.round(cx * 10) / 10));
+    const y = Math.max(12, Math.min(88, Math.round(cy * 10) / 10));
+
+    return {
+      id: tag,
+      name: tag,
+      count,
+      category: cat.name,
+      color: cat.color,
+      glyph: cat.glyph,
+      x,
+      y,
+      articles: taggedArticles.slice(0, 8),
+    };
   });
-  
-  return { nodes, links };
+
+  const categories = Object.values(CATEGORIES).map((c) => ({
+    name: c.name,
+    color: c.color,
+    glyph: c.glyph,
+  }));
+
+  return {
+    hubs,
+    categories,
+  };
 }
