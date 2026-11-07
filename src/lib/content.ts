@@ -270,7 +270,8 @@ export function resolveObsidianLinks(
   }
 
   return content.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
-    const parts = p1.split('|');
+    const cleanP1 = p1.replace(/^\[+|\]+$/g, '');
+    const parts = cleanP1.split('|');
     const target = parts[0].trim();
     const alias = parts[1] ? parts[1].trim() : target;
     const targetNormalized = target.toLowerCase();
@@ -308,14 +309,15 @@ export function resolveObsidianLinks(
       return `[${alias}](/keyword/${encodeURIComponent(slugify(target))})`;
     }
 
-    // 5. Unresolved link: DO NOT break as a 404. Render muted styled span and record warning.
+    // 5. Unresolved link: DO NOT break as a 404. Render as markdown link to #unresolved with title attribute.
     buildReport.add({
       type: 'unresolved_link',
       file: sourceFile,
       message: `Unresolved wikilink: [[${target}]]`,
     });
 
-    return `<span class="unresolved-wikilink text-muted border-b border-dotted border-muted cursor-help" title="Unresolved link: ${target}">${alias}</span>`;
+    const safeTitle = target.replace(/"/g, "'");
+    return `[${alias}](#unresolved "${safeTitle}")`;
   });
 }
 

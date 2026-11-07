@@ -1,39 +1,54 @@
 "use client";
 
-import { motion, useScroll, useSpring } from "framer-motion";
+import { useEffect, useState } from "react";
 
 export function ReadingProgress() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 30,
-    restDelta: 0.001
-  });
+  const [percent, setPercent] = useState(0);
 
-  const scaleY = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 30,
-    restDelta: 0.001
-  });
+  useEffect(() => {
+    const onScroll = () => {
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight > 0) {
+        const scrolled = (window.scrollY / docHeight) * 100;
+        setPercent(Math.min(100, Math.max(0, scrolled)));
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <>
-      {/* Mobile: Horizontal bar at the bottom */}
-      <motion.div
-        className="fixed bottom-0 left-0 right-0 h-1.5 bg-[#C8A882] z-[60] origin-left md:hidden"
-        style={{ scaleX }}
-      />
-
-      {/* Desktop: Vertical bar on the side (right) */}
-      <div className="fixed right-4 top-1/2 -translate-y-1/2 h-64 w-px bg-white/10 hidden md:block z-[60]">
-        <motion.div
-          className="w-full bg-[#C8A882] origin-top"
-          style={{ height: "100%", scaleY }}
+      {/* Mobile Top Thin Hairline */}
+      <div
+        aria-hidden="true"
+        className="fixed top-0 left-0 right-0 h-[2px] bg-transparent z-60 md:hidden pointer-events-none"
+      >
+        <div
+          className="h-full bg-[var(--gold)] transition-all duration-100 ease-out"
+          style={{ width: `${percent}%` }}
         />
-        <div className="absolute top-0 -left-1 font-mono text-[8px] text-white/20 tracking-tighter -rotate-90 origin-left translate-y-[-10px]">
-          READING PROGRESS
-        </div>
       </div>
+
+      {/* Desktop Vertical Right Bar */}
+      <div
+        aria-hidden="true"
+        className="reader-progress hidden md:block"
+        style={{
+          height: `${percent}%`,
+          top: 0,
+          right: 0,
+          position: "fixed",
+          width: "2px",
+          backgroundColor: "var(--gold)",
+          zIndex: 61,
+          transition: "height 0.1s ease-out",
+          pointerEvents: "none",
+        }}
+      />
     </>
   );
 }
