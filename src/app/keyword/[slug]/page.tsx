@@ -27,7 +27,8 @@ export default async function KeywordHubPage({ params }: Props) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug).replace(/-/g, " ");
   
-  const hubArticles = getHubArticles(decodedSlug);
+  const hubData = getHubArticles(decodedSlug);
+  const hubArticles = hubData.articles;
   const hubRawContent = getHubContent(decodedSlug);
   const allArticles = getAllArticles();
   
