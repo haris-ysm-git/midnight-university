@@ -146,35 +146,23 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
 
         {/* Left Topic Rail */}
         <aside className="topic-rail">
-          <div className="meta mb-6 font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">
-            Topics
-          </div>
+          <div className="meta">Topics</div>
           <button
             type="button"
-            className={`w-full text-left transition-colors mb-4 ${
-              selectedCategory === null
-                ? "text-[var(--gold-bright)] font-semibold"
-                : "text-[var(--secondary)] hover:text-[var(--gold)]"
-            }`}
+            className={selectedCategory === null ? "active" : ""}
             onClick={() => {
               setSelectedCategory(null);
               setFocus(0);
             }}
           >
             All Articles
-            <span className="block font-mono text-[9px] text-[var(--muted)] tracking-wider uppercase mt-1">
-              {articles.length} articles
-            </span>
+            <span>{articles.length} articles</span>
           </button>
           {categoryCounts.map((cat) => (
             <button
               key={cat.name}
               type="button"
-              className={`w-full text-left transition-colors mb-4 ${
-                selectedCategory === cat.name
-                  ? "text-[var(--gold-bright)] font-semibold"
-                  : "text-[var(--secondary)] hover:text-[var(--gold)]"
-              }`}
+              className={selectedCategory === cat.name ? "active" : ""}
               onClick={() => {
                 setSelectedCategory(cat.name);
                 setFocus(0);
@@ -184,15 +172,13 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
                 {cat.glyph}
               </span>
               {cat.name}
-              <span className="block font-mono text-[9px] text-[var(--muted)] tracking-wider uppercase mt-1">
-                {cat.count} articles
-              </span>
+              <span>{cat.count} articles</span>
             </button>
           ))}
         </aside>
 
         {/* Center Endless Loop Track */}
-        <div className="article-loop flex flex-col justify-center">
+        <div className="article-loop">
           {[-1, 0, 1].map((offset) => {
             const index = (focus + offset + total) % total;
             const a = filteredArticles[index];
@@ -211,19 +197,17 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
                   }
                 }}
               >
-                <div className="meta font-mono text-xs text-[var(--gold)] tracking-wider uppercase">
+                <div className="meta">
                   {a.id} · {a.frontmatter.date}
                 </div>
-                <h2 className="font-thai text-2xl md:text-3xl lg:text-4xl font-medium leading-[1.35] text-[var(--text)] mt-2 mb-1">
+                <h2>
                   <Thai>{a.frontmatter.title_th}</Thai>
                 </h2>
                 {a.frontmatter.title_en && a.frontmatter.title_en !== a.frontmatter.title_th && (
-                  <h3 className="font-serif italic text-base md:text-lg text-[var(--secondary)] mb-3">
-                    {a.frontmatter.title_en}
-                  </h3>
+                  <h3>{a.frontmatter.title_en}</h3>
                 )}
                 {isFocused && (
-                  <p className="font-thai text-sm md:text-base text-[var(--secondary)] leading-relaxed mt-4 max-w-2xl line-clamp-3">
+                  <p>
                     <Thai>{a.frontmatter.description || ""}</Thai>
                   </p>
                 )}
@@ -236,24 +220,21 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
         <aside className="detail-rail">
           {currentArticle && (
             <>
-              <div className="meta font-mono text-xs text-[var(--muted)] tracking-wider">
+              <div className="meta">
                 {currentArticle.frontmatter.reading_time} ·{" "}
-                <span className="text-[var(--gold)]">
-                  {currentArticle.frontmatter.author && currentArticle.frontmatter.author !== "NA"
-                    ? currentArticle.frontmatter.author
-                    : "Midnight University"}
-                </span>
+                {currentArticle.frontmatter.author && currentArticle.frontmatter.author !== "NA"
+                  ? currentArticle.frontmatter.author
+                  : "Midnight University"}
               </div>
 
               {currentArticle.frontmatter.tags.length > 0 && (
-                <div className="tag-list flex flex-wrap gap-2 my-4">
+                <div className="tag-list">
                   {currentArticle.frontmatter.tags.map((tag) => {
                     const cat = getCategoryForTag(tag);
                     return (
                       <Link
                         key={tag}
                         href={`/keyword/${encodeURIComponent(tag)}`}
-                        className="px-2.5 py-1 text-xs border rounded-xs transition-colors"
                         style={{ borderColor: `${cat.color}40`, color: cat.color }}
                       >
                         <span className="opacity-70 mr-1">{cat.glyph}</span>
@@ -266,9 +247,9 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
 
               <Link
                 href={`/article/${currentArticle.id}`}
-                className="text-link mt-auto inline-flex items-center gap-2 text-sm font-mono text-[var(--gold-bright)] hover:underline uppercase tracking-wider"
+                className="text-link"
               >
-                Read article <Icon name="arrow" size={12} />
+                Read article <Icon name="arrow" />
               </Link>
             </>
           )}
@@ -280,7 +261,6 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
             type="button"
             aria-label="Previous article"
             onClick={() => shift(-1)}
-            className="flex items-center justify-center border border-[var(--line)] text-[var(--gold)] hover:border-[var(--gold)] hover:bg-[var(--raised)] w-10 h-10 transition-colors"
           >
             ↑
           </button>
@@ -288,13 +268,10 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
             type="button"
             aria-label="Next article"
             onClick={() => shift(1)}
-            className="flex items-center justify-center border border-[var(--line)] text-[var(--gold)] hover:border-[var(--gold)] hover:bg-[var(--raised)] w-10 h-10 transition-colors"
           >
             ↓
           </button>
-          <span className="meta font-mono text-[9px] uppercase tracking-wider text-[var(--muted)] ml-3">
-            Use arrow keys / j,k · Scroll or swipe
-          </span>
+          <div className="meta">Use arrow keys · Scroll / Swipe</div>
         </div>
       </section>
     </div>

@@ -43,14 +43,26 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
     };
   }, [tagNotes, articles, currentTab]);
 
-  // Thai consonant extractor ignoring leading vowels (เ แ โ ไ ใ)
-  const getThaiInitialConsonant = (title: string): string => {
-    const clean = title.trim();
+  // Clean initial extractor: handles digits (#), Thai consonants (skipping leading vowels), and Latin A-Z
+  const getInitial = (text: string): string => {
+    const clean = text.trim();
     if (!clean) return "#";
+
     const first = clean.charAt(0);
+
+    // If starts with number or punctuation
+    if (/^[0-9]/.test(first)) return "#";
+
+    // If Thai leading vowel (เ, แ, โ, ใ, ไ), use the following consonant
     if (["เ", "แ", "โ", "ใ", "ไ"].includes(first) && clean.length > 1) {
       return clean.charAt(1);
     }
+
+    // If Latin character
+    if (/^[a-zA-Z]/.test(first)) {
+      return first.toUpperCase();
+    }
+
     return first;
   };
 
@@ -58,7 +70,7 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
   const entries = useMemo(() => {
     if (currentTab === "Titles") {
       return articles.map((a) => {
-        const initial = getThaiInitialConsonant(a.frontmatter.title_th);
+        const initial = getInitial(a.frontmatter.title_th);
         return {
           key: a.id,
           label: a.frontmatter.title_th,
@@ -81,7 +93,7 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
       }> = [];
 
       categorizedNotes.allTagsMap.forEach((arts, tag) => {
-        const initial = tag.charAt(0).toUpperCase();
+        const initial = getInitial(tag);
         result.push({
           key: tag,
           label: tag,
@@ -102,7 +114,7 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
     }
 
     return sourceNotes.map((note) => {
-      const initial = note.title.charAt(0).toUpperCase();
+      const initial = getInitial(note.title);
       const matchingArticles = articles.filter(
         (a) =>
           a.frontmatter.tags.some((t) => t.toLowerCase() === note.title.toLowerCase()) ||
@@ -119,6 +131,20 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
       };
     });
   }, [currentTab, articles, tagNotes, categorizedNotes]);
+
+  // Distinct initial letters available in current tab
+  const availableLetters = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => set.add(e.initial));
+
+    const isThai = currentTab === "Titles";
+    const collator = new Intl.Collator(isThai ? "th" : "en");
+    return Array.from(set).sort((a, b) => {
+      if (a === "#") return -1;
+      if (b === "#") return 1;
+      return collator.compare(a, b);
+    });
+  }, [entries, currentTab]);
 
   // Filter entries by search query and optional letter filter
   const filteredEntries = useMemo(() => {
@@ -143,10 +169,13 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
       map.get(e.initial)!.push(e);
     }
 
-    // Sort letters using Thai or English collator
     const isThai = currentTab === "Titles";
     const collator = new Intl.Collator(isThai ? "th" : "en");
-    const sortedLetters = Array.from(map.keys()).sort((a, b) => collator.compare(a, b));
+    const sortedLetters = Array.from(map.keys()).sort((a, b) => {
+      if (a === "#") return -1;
+      if (b === "#") return 1;
+      return collator.compare(a, b);
+    });
 
     return sortedLetters.map((letter) => ({
       letter,
@@ -154,36 +183,27 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
     }));
   }, [filteredEntries, currentTab]);
 
-  const thaiAlphabet = "ก ข ค ง จ ฉ ช ซ ญ ด ต ถ ท ธ น บ ป ผ พ ภ ม ย ร ล ว ศ ส ห อ ฮ".split(" ");
-  const latinAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-
   return (
-    <div className="standard-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="standard-page">
       {/* ══ HEADER ══════════════════════════════════════════════════════════ */}
-      <div className="page-title mb-8">
-        <div className="meta font-mono text-xs text-[var(--gold)] uppercase tracking-widest mb-3">
+      <div className="page-title">
+        <div className="meta">
           A book-like directory · {entries.length} items
         </div>
-        <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-normal text-[var(--text)] tracking-tight mb-4">
-          Index
-        </h1>
-        <p className="font-thai text-lg sm:text-xl text-[var(--secondary)] font-normal leading-relaxed">
+        <h1>Index</h1>
+        <p>
           <Thai>ดรรชนีบุคคล แนวคิด สถานที่ และชื่อเรื่องในคลัง</Thai>
         </p>
       </div>
 
       {/* ══ TABS & SEARCH BAR ═══════════════════════════════════════════════ */}
-      <div className="index-tools flex flex-col sm:flex-row sm:items-center justify-between border-t border-b border-[var(--line)] mb-8">
-        <div className="tabs flex overflow-x-auto">
+      <div className="index-tools">
+        <div className="tabs">
           {tabs.map((tab) => (
             <button
               key={tab}
               type="button"
-              className={`px-5 py-3 font-mono text-xs uppercase tracking-wider transition-colors border-b-2 ${
-                currentTab === tab
-                  ? "border-[var(--gold)] text-[var(--gold-bright)] font-semibold"
-                  : "border-transparent text-[var(--muted)] hover:text-[var(--text)]"
-              }`}
+              className={currentTab === tab ? "active" : ""}
               onClick={() => {
                 setCurrentTab(tab);
                 setSelectedLetter(null);
@@ -195,113 +215,61 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
           ))}
         </div>
 
-        <label className="index-search flex items-center gap-3 px-4 py-2 border-t sm:border-t-0 sm:border-l border-[var(--line)]">
-          <Icon name="search" size={16} className="text-[var(--muted)]" />
+        <label className="index-search">
+          <Icon name="search" size={16} />
           <input
             type="text"
             placeholder="Search within index..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="bg-transparent text-sm text-[var(--text)] placeholder-[var(--muted)] outline-none py-1.5 w-full sm:w-56"
           />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="text-xs text-[var(--muted)] hover:text-[var(--text)]"
-            >
-              ✕
-            </button>
-          )}
         </label>
       </div>
 
       {/* ══ ALPHABET JUMP BAR ═══════════════════════════════════════════════ */}
-      {currentTab === "Titles" ? (
-        <div className="mb-8">
-          <div className="alphabet thai-alphabet flex flex-wrap gap-1.5 mb-3">
-            <button
-              type="button"
-              className={`w-8 h-8 font-thai text-xs border rounded-xs transition-colors ${
-                selectedLetter === null
-                  ? "bg-[var(--gold)] text-[var(--bg)] border-[var(--gold)]"
-                  : "border-[var(--line)] text-[var(--muted)] hover:border-[var(--gold)]"
-              }`}
-              onClick={() => setSelectedLetter(null)}
-            >
-              All
-            </button>
-            {thaiAlphabet.map((letter) => (
-              <button
-                key={letter}
-                type="button"
-                className={`w-8 h-8 font-thai text-xs border rounded-xs transition-colors ${
-                  selectedLetter === letter
-                    ? "bg-[var(--gold)] text-[var(--bg)] border-[var(--gold)]"
-                    : "border-[var(--line)] text-[var(--muted)] hover:border-[var(--gold)] hover:text-[var(--gold)]"
-                }`}
-                onClick={() => setSelectedLetter(selectedLetter === letter ? null : letter)}
-              >
-                {letter}
-              </button>
-            ))}
-          </div>
-          <p className="index-note font-mono text-[11px] text-[var(--muted)] leading-relaxed">
-            เรียงตามพยัญชนะต้น โดยไม่นับสระนำ เ แ โ ไ ใ — เช่น “เสรีภาพ” จัดอยู่ในหมวด ส
-          </p>
-        </div>
-      ) : (
-        <div className="alphabet flex flex-wrap gap-1.5 mb-8">
-          <button
-            type="button"
-            className={`w-8 h-8 font-mono text-xs border rounded-xs transition-colors ${
-              selectedLetter === null
-                ? "bg-[var(--gold)] text-[var(--bg)] border-[var(--gold)]"
-                : "border-[var(--line)] text-[var(--muted)] hover:border-[var(--gold)]"
-            }`}
-            onClick={() => setSelectedLetter(null)}
-          >
-            All
-          </button>
-          {latinAlphabet.map((letter) => (
-            <button
-              key={letter}
-              type="button"
-              className={`w-8 h-8 font-mono text-xs border rounded-xs transition-colors ${
-                selectedLetter === letter
-                  ? "bg-[var(--gold)] text-[var(--bg)] border-[var(--gold)]"
-                  : "border-[var(--line)] text-[var(--muted)] hover:border-[var(--gold)] hover:text-[var(--gold)]"
-              }`}
-              onClick={() => setSelectedLetter(selectedLetter === letter ? null : letter)}
-            >
-              {letter}
-            </button>
-          ))}
-        </div>
+      {currentTab === "Titles" && (
+        <p className="index-note">
+          เรียงตามพยัญชนะต้น โดยไม่นับสระนำ เ แ โ ไ ใ — เช่น “เสรีภาพ” จัดอยู่ในหมวด ส
+        </p>
       )}
+
+      <div className="alphabet">
+        <button
+          type="button"
+          className={selectedLetter === null ? "active" : ""}
+          onClick={() => setSelectedLetter(null)}
+        >
+          All
+        </button>
+        {availableLetters.map((letter) => (
+          <button
+            key={letter}
+            type="button"
+            className={selectedLetter === letter ? "active" : ""}
+            onClick={() => setSelectedLetter(selectedLetter === letter ? null : letter)}
+          >
+            {letter}
+          </button>
+        ))}
+      </div>
 
       {/* ══ BOOK DIRECTORY ENTRIES ══════════════════════════════════════════ */}
       {groupedByLetter.length === 0 ? (
-        <div className="py-16 text-center text-[var(--muted)] font-mono text-sm">
-          No index entries found matching &ldquo;{query}&rdquo;.
+        <div className="search-empty">
+          <p>No index entries found matching &ldquo;{query}&rdquo;.</p>
         </div>
       ) : (
-        <div className="space-y-12">
+        <div className="index-book">
           {groupedByLetter.map(({ letter, items }) => (
-            <div
-              key={letter}
-              className="index-book grid grid-cols-1 md:grid-cols-[140px_1fr] border-t border-[var(--line)] pt-6 gap-6"
-            >
+            <React.Fragment key={letter}>
               <div className="index-letter">
-                <div className="font-thai text-5xl sm:text-6xl text-[var(--gold)] font-light">
-                  {letter}
-                </div>
-                <div className="meta font-mono text-xs text-[var(--muted)] tracking-wider mt-2">
+                {letter}
+                <div className="meta">
                   {items.length} {items.length === 1 ? "entry" : "entries"}
                 </div>
               </div>
 
-              <div className="divide-y divide-[var(--line)]">
+              <div>
                 {items.map((entry) => {
                   const isExpanded = expandedKey === entry.key;
 
@@ -309,64 +277,42 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
                     <article key={entry.key} className="index-entry">
                       <button
                         type="button"
-                        className="w-full flex items-center justify-between py-4 text-left group hover:text-[var(--gold-bright)] transition-colors"
                         onClick={() => setExpandedKey(isExpanded ? null : entry.key)}
                       >
-                        <div>
-                          <span className="font-serif text-xl sm:text-2xl text-[var(--text)] group-hover:text-[var(--gold-bright)] transition-colors mr-3">
-                            <Thai>{entry.label}</Thai>
-                          </span>
-                          <span className="font-mono text-xs text-[var(--muted)]">
-                            ({entry.articles.length})
-                          </span>
-                          {entry.subLabel && (
-                            <span className="font-serif italic text-xs text-[var(--secondary)] block mt-1">
-                              {entry.subLabel}
-                            </span>
-                          )}
-                        </div>
-                        <Icon
-                          name="chevron"
-                          size={14}
-                          className={`transition-transform duration-200 opacity-60 ${
-                            isExpanded ? "rotate-180 text-[var(--gold)]" : ""
-                          }`}
-                        />
+                        <span>
+                          <Thai>{entry.label}</Thai>{" "}
+                          <small>({entry.articles.length})</small>
+                        </span>
+                        <Icon name="chevron" />
                       </button>
 
                       {isExpanded && (
-                        <div className="index-expansion border-l border-[var(--gold)] pl-5 py-3 my-2 space-y-3 bg-[var(--raised)]/30 rounded-r-xs">
+                        <div className="index-expansion">
                           {entry.articles.map((art) => (
-                            <div
+                            <Link
                               key={art.id}
-                              className="flex items-baseline justify-between gap-4 py-1"
+                              href={`/article/${art.id}`}
                             >
-                              <div className="flex items-baseline gap-3">
-                                <span className="font-mono text-xs text-[var(--gold)] font-semibold">
-                                  {art.id}
-                                </span>
-                                <Link
-                                  href={`/article/${art.id}`}
-                                  className="font-thai text-sm text-[var(--text)] hover:text-[var(--gold-bright)] hover:underline leading-snug"
-                                >
-                                  <Thai>{art.frontmatter.title_th}</Thai>
-                                </Link>
-                              </div>
-                              <span className="font-mono text-[10px] text-[var(--muted)] whitespace-nowrap">
-                                {art.frontmatter.date}
+                              <div className="meta">{art.id}</div>
+                              <strong>
+                                <Thai>{art.frontmatter.title_th}</Thai>
+                              </strong>
+                              <span>
+                                Read article <Icon name="arrow" />
                               </span>
-                            </div>
+                            </Link>
                           ))}
 
                           {currentTab !== "Titles" && (
-                            <div className="pt-2">
-                              <Link
-                                href={entry.href}
-                                className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase text-[var(--gold)] hover:underline tracking-wider"
-                              >
-                                Open keyword archive <Icon name="arrow" size={10} />
-                              </Link>
-                            </div>
+                            <Link
+                              href={entry.href}
+                            >
+                              <div className="meta">✦</div>
+                              <strong>Open keyword archive</strong>
+                              <span>
+                                View hub <Icon name="arrow" />
+                              </span>
+                            </Link>
                           )}
                         </div>
                       )}
@@ -374,10 +320,16 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
                   );
                 })}
               </div>
-            </div>
+            </React.Fragment>
           ))}
         </div>
       )}
-    </div>
+
+      {query && (
+        <div className="match-note meta">
+          Exact matches shown first · Near matches follow
+        </div>
+      )}
+    </main>
   );
 }

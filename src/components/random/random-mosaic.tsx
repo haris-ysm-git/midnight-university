@@ -38,16 +38,14 @@ export function RandomMosaic({ initialArticles, tagNotes }: RandomMosaicProps) {
   };
 
   return (
-    <div className="random-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="random-page">
       {/* ══ HEADER ══════════════════════════════════════════════════════════ */}
-      <div className="page-title mb-10">
-        <div className="meta font-mono text-xs text-[var(--gold)] uppercase tracking-widest mb-3">
+      <div className="page-title">
+        <div className="meta">
           Edition {String(edition).padStart(2, "0")} · fragments recomposed
         </div>
-        <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-normal text-[var(--text)] tracking-tight mb-4">
-          Random Assembly
-        </h1>
-        <p className="font-thai text-lg sm:text-xl text-[var(--secondary)] font-normal leading-relaxed">
+        <h1>Random Assembly</h1>
+        <p>
           <Thai>ความคิดที่พบกันโดยบังเอิญในห้องอ่านยามค่ำคืน</Thai>
         </p>
       </div>
@@ -56,80 +54,66 @@ export function RandomMosaic({ initialArticles, tagNotes }: RandomMosaicProps) {
       <div className="mosaic">
         {/* Tile 1: Excerpt (wide) */}
         {exc1 && (
-          <Link href={`/article/${exc1.id}`} className="tile excerpt wide group">
-            <div className="meta font-mono text-xs text-[var(--gold)] tracking-wider mb-2">
-              NO. {exc1.id}
-            </div>
-            <blockquote className="font-thai italic text-base sm:text-lg text-[var(--text)] leading-relaxed group-hover:text-[var(--gold-bright)] transition-colors line-clamp-4">
+          <Link href={`/article/${exc1.id}`} className="tile excerpt wide">
+            <div className="meta">NO. {exc1.id}</div>
+            <blockquote>
               <Thai>{exc1.frontmatter.description || exc1.frontmatter.title_th}</Thai>
             </blockquote>
-            <span className="font-serif italic text-xs text-[var(--muted)] mt-auto pt-4 truncate">
-              {exc1.frontmatter.title_en || exc1.frontmatter.title_th}
-            </span>
+            <span>{exc1.frontmatter.title_en || exc1.frontmatter.title_th}</span>
             <i className="corner" />
           </Link>
         )}
 
         {/* Tile 2: Glyph Stamp */}
         <div className="tile glyph" aria-hidden="true">
-          <div className="stamp font-serif text-4xl text-[var(--gold)]">♜</div>
+          <div className="stamp font-serif">♜<i /></div>
         </div>
 
         {/* Tile 3: Keyword Hub link */}
         <Link
           href={`/keyword/${encodeURIComponent(kw1)}`}
-          className="tile keyword group hover:bg-[var(--raised)] transition-colors p-4"
+          className="tile keyword"
         >
-          <span className="group-hover:text-[var(--gold-bright)] transition-colors">
-            {kw1}
-          </span>
+          {kw1}
         </Link>
 
         {/* Tile 4: Dither visual tile */}
-        <div className="tile relative overflow-hidden" aria-hidden="true">
-          <div className="dither dither-1 inset-0 absolute opacity-70" />
-          <span className="absolute bottom-2.5 left-3 font-mono text-[8px] text-[var(--gold-pale)] uppercase tracking-wider z-10">
-            Dither 1×1
-          </span>
+        <div className="tile" aria-hidden="true">
+          <div className="dither dither-1">
+            <span>Dither 1×1</span>
+          </div>
         </div>
 
         {/* Tile 5: Keyword Hub link */}
         <Link
           href={`/keyword/${encodeURIComponent(kw2)}`}
-          className="tile keyword group hover:bg-[var(--raised)] transition-colors p-4"
+          className="tile keyword"
         >
-          <span className="group-hover:text-[var(--gold-bright)] transition-colors">
-            {kw2}
-          </span>
+          {kw2}
         </Link>
 
         {/* Tile 6: Excerpt (tall) */}
         {exc2 && (
-          <Link href={`/article/${exc2.id}`} className="tile excerpt tall group">
-            <div className="meta font-mono text-xs text-[var(--gold)] tracking-wider mb-2">
-              NO. {exc2.id}
-            </div>
-            <blockquote className="font-thai italic text-base sm:text-lg text-[var(--text)] leading-relaxed group-hover:text-[var(--gold-bright)] transition-colors line-clamp-6">
+          <Link href={`/article/${exc2.id}`} className="tile excerpt tall">
+            <div className="meta">NO. {exc2.id}</div>
+            <blockquote>
               <Thai>{exc2.frontmatter.description || exc2.frontmatter.title_th}</Thai>
             </blockquote>
-            <span className="font-serif italic text-xs text-[var(--muted)] mt-auto pt-4 truncate">
-              {exc2.frontmatter.title_en || exc2.frontmatter.title_th}
-            </span>
+            <span>{exc2.frontmatter.title_en || exc2.frontmatter.title_th}</span>
             <i className="corner" />
           </Link>
         )}
 
         {/* Tile 7: Moon Glyph */}
         <div className="tile glyph" aria-hidden="true">
-          <div className="stamp font-serif text-4xl text-[var(--gold)]">☾</div>
+          <div className="stamp font-serif">☾</div>
         </div>
 
         {/* Tile 8: Dither visual tile (wide) */}
-        <div className="tile wide relative overflow-hidden" aria-hidden="true">
-          <div className="dither dither-3 inset-0 absolute opacity-70" />
-          <span className="absolute bottom-2.5 left-3 font-mono text-[8px] text-[var(--gold-pale)] uppercase tracking-wider z-10">
-            Dither 2×1
-          </span>
+        <div className="tile wide" aria-hidden="true">
+          <div className="dither dither-3">
+            <span>Dither 2×1</span>
+          </div>
         </div>
 
         {/* Tile 9: Subtle Blank tile */}
@@ -140,71 +124,62 @@ export function RandomMosaic({ initialArticles, tagNotes }: RandomMosaicProps) {
         {/* Tile 10: Keyword Hub link */}
         <Link
           href={`/keyword/${encodeURIComponent(kw3)}`}
-          className="tile keyword group hover:bg-[var(--raised)] transition-colors p-4"
+          className="tile keyword"
         >
-          <span className="group-hover:text-[var(--gold-bright)] transition-colors">
-            {kw3}
-          </span>
+          {kw3}
         </Link>
 
         {/* Tile 11: Scales Glyph */}
         <div className="tile glyph" aria-hidden="true">
-          <div className="stamp font-serif text-4xl text-[var(--gold)]">⚖</div>
+          <div className="stamp font-serif">⚖</div>
         </div>
 
         {/* Tile 12: Excerpt (wide) */}
         {exc3 && (
-          <Link href={`/article/${exc3.id}`} className="tile excerpt wide group">
-            <div className="meta font-mono text-xs text-[var(--gold)] tracking-wider mb-2">
-              NO. {exc3.id}
-            </div>
-            <blockquote className="font-thai italic text-base sm:text-lg text-[var(--text)] leading-relaxed group-hover:text-[var(--gold-bright)] transition-colors line-clamp-4">
+          <Link href={`/article/${exc3.id}`} className="tile excerpt wide">
+            <div className="meta">NO. {exc3.id}</div>
+            <blockquote>
               <Thai>{exc3.frontmatter.description || exc3.frontmatter.title_th}</Thai>
             </blockquote>
-            <span className="font-serif italic text-xs text-[var(--muted)] mt-auto pt-4 truncate">
-              {exc3.frontmatter.title_en || exc3.frontmatter.title_th}
-            </span>
+            <span>{exc3.frontmatter.title_en || exc3.frontmatter.title_th}</span>
             <i className="corner" />
           </Link>
         )}
 
         {/* Tile 13: Dither tile */}
-        <div className="tile relative overflow-hidden" aria-hidden="true">
-          <div className="dither dither-2 inset-0 absolute opacity-70" />
-          <span className="absolute bottom-2.5 left-3 font-mono text-[8px] text-[var(--gold-pale)] uppercase tracking-wider z-10">
-            Dither 1×1
-          </span>
+        <div className="tile" aria-hidden="true">
+          <div className="dither dither-2">
+            <span>Dither 1×1</span>
+          </div>
         </div>
 
         {/* Tile 14: Keyword Hub link */}
         <Link
           href={`/keyword/${encodeURIComponent(kw4)}`}
-          className="tile keyword group hover:bg-[var(--raised)] transition-colors p-4"
+          className="tile keyword"
         >
-          <span className="group-hover:text-[var(--gold-bright)] transition-colors">
-            {kw4}
-          </span>
+          {kw4}
         </Link>
 
         {/* Tile 15: Book / Geometry Glyph */}
         <div className="tile glyph" aria-hidden="true">
-          <div className="stamp font-serif text-4xl text-[var(--gold)]">✦</div>
+          <div className="stamp font-serif">▱</div>
         </div>
       </div>
 
       {/* ══ FOOTER RESHUFFLE ═══════════════════════════════════════════════ */}
-      <footer className="edition-footer flex items-center justify-between border-t border-[var(--line)] py-8 mt-12">
-        <div className="meta font-mono text-xs text-[var(--muted)] tracking-wider">
+      <footer className="edition-footer">
+        <div className="meta">
           End of edition · Reload or click Reshuffle for new fragments
         </div>
         <button
           type="button"
           onClick={handleReshuffle}
-          className="outline-button flex items-center gap-2 border border-[var(--line)] px-5 py-2.5 font-mono text-xs text-[var(--gold)] hover:border-[var(--gold)] hover:bg-[var(--raised)] transition-colors uppercase tracking-wider"
+          className="outline-button"
         >
-          <Icon name="shuffle" size={14} /> Reshuffle
+          <Icon name="shuffle" /> Reshuffle
         </button>
       </footer>
-    </div>
+    </main>
   );
 }
