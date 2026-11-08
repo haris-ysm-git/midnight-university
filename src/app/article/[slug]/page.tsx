@@ -12,27 +12,50 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
   const articles = getAllArticles();
 
-  // Support both 4-digit ID and slug
-  const idParams = articles.map((article) => ({
-    slug: article.id,
-  }));
+  const params: { slug: string }[] = [];
 
-  const slugParams = articles.map((article) => ({
-    slug: article.slug,
-  }));
+  for (const article of articles) {
+    // 1. Canonical 4-digit ID (e.g. "0002", "0811", "1177")
+    params.push({ slug: article.id });
 
-  return [...idParams, ...slugParams];
+    // 2. Short English slug (< 30 chars) to avoid Windows MAX_PATH limits
+    if (article.slug && article.slug !== article.id && article.slug.length < 30) {
+      params.push({ slug: article.slug });
+    }
+
+    // 3. Unpadded numeric string (e.g. "2", "811")
+    const num = parseInt(article.id, 10);
+    if (!isNaN(num)) {
+      const numStr = String(num);
+      if (numStr !== article.id) {
+        params.push({ slug: numStr });
+      }
+    }
+  }
+
+  return params;
 }
 
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;
-  const decodedSlug = decodeURIComponent(slug);
+  let decodedSlug = slug;
+  try {
+    decodedSlug = decodeURIComponent(slug);
+  } catch {
+    decodedSlug = slug;
+  }
 
-  // Try finding by canonical ID first, fallback to slug
-  const article = getArticleById(decodedSlug) || getArticleBySlug(decodedSlug);
+  // Multi-pass tolerant resolution: canonical ID -> slug -> raw slug -> title
+  const article =
+    getArticleById(decodedSlug) ||
+    getArticleBySlug(decodedSlug) ||
+    getArticleById(slug) ||
+    getArticleBySlug(slug);
 
   if (!article) {
     notFound();

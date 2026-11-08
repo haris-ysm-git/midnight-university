@@ -255,7 +255,15 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
                     {a.id} · {a.frontmatter.date}
                   </div>
                   <h2>
-                    <Thai>{a.frontmatter.title_th}</Thai>
+                    <Link
+                      href={`/article/${a.id}`}
+                      className="hover:text-[var(--gold-bright)] transition-colors text-inherit no-underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      <Thai>{a.frontmatter.title_th}</Thai>
+                    </Link>
                   </h2>
                   {a.frontmatter.title_en && a.frontmatter.title_en !== a.frontmatter.title_th && (
                     <h3>{a.frontmatter.title_en}</h3>
@@ -265,6 +273,15 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
                       <Thai>{a.frontmatter.description || ""}</Thai>
                     </p>
                   )}
+                  <div className="mt-3">
+                    <Link
+                      href={`/article/${a.id}`}
+                      className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-[var(--gold)] hover:text-[var(--gold-bright)] transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Read article <Icon name="arrow" size={12} />
+                    </Link>
+                  </div>
                 </article>
               );
             })

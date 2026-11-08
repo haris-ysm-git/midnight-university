@@ -180,16 +180,75 @@ export function getAllArticles(): Article[] {
 
 export function getArticleById(id: string): Article | null {
   const articles = getAllArticles();
+  if (!id) return null;
   const normalized = id.trim();
-  return articles.find((a) => a.id === normalized) || null;
+  const normalizedLower = normalized.toLowerCase();
+
+  // 1. Exact string match on ID (e.g. '0002', '1177', '0126-1')
+  const exact = articles.find((a) => a.id.toLowerCase() === normalizedLower);
+  if (exact) return exact;
+
+  // 2. Numeric match (e.g. '2' -> '0002', '19' -> '0019', '811' -> '0811')
+  const numParsed = parseInt(normalized, 10);
+  if (!isNaN(numParsed)) {
+    const padded = String(numParsed).padStart(4, '0');
+    const numMatch = articles.find((a) => a.id === padded || parseInt(a.id, 10) === numParsed);
+    if (numMatch) return numMatch;
+  }
+
+  // 3. Leading ID in string (e.g. '0002-thinking', '0002 วิธีคิด', '1177 ความเป็นมา...')
+  const prefixMatch = normalized.match(/^(\d{4}(?:-\d+)?)/);
+  if (prefixMatch) {
+    const prefixId = prefixMatch[1];
+    const match = articles.find((a) => a.id === prefixId || parseInt(a.id, 10) === parseInt(prefixId, 10));
+    if (match) return match;
+  }
+
+  return null;
 }
 
 export function getArticleBySlug(slug: string): Article | null {
   const articles = getAllArticles();
-  const normalized = slug.trim().toLowerCase();
-  return (
-    articles.find((a) => a.slug.toLowerCase() === normalized || a.id.toLowerCase() === normalized) || null
+  if (!slug) return null;
+  const normalized = slug.trim();
+  const normalizedLower = normalized.toLowerCase();
+  const slugifiedInput = slugify(normalized);
+
+  // 1. ID check first
+  const byId = getArticleById(normalized);
+  if (byId) return byId;
+
+  // 2. Exact match on slug (e.g. 'thinking', 'language-of-nature')
+  const bySlug = articles.find(
+    (a) => a.slug.toLowerCase() === normalizedLower || a.slug === slugifiedInput
   );
+  if (bySlug) return bySlug;
+
+  // 3. Thai title match (exact or slugified)
+  const byTitleTh = articles.find(
+    (a) =>
+      a.frontmatter.title_th.toLowerCase() === normalizedLower ||
+      slugify(a.frontmatter.title_th) === slugifiedInput ||
+      a.frontmatter.title_th.toLowerCase().includes(normalizedLower)
+  );
+  if (byTitleTh) return byTitleTh;
+
+  // 4. English title match
+  const byTitleEn = articles.find(
+    (a) =>
+      a.frontmatter.title_en.toLowerCase() === normalizedLower ||
+      slugify(a.frontmatter.title_en) === slugifiedInput
+  );
+  if (byTitleEn) return byTitleEn;
+
+  // 5. Filename match from rawPath
+  const byFilename = articles.find((a) => {
+    const base = path.basename(a.rawPath, '.md').toLowerCase();
+    return base === normalizedLower || slugify(base) === slugifiedInput;
+  });
+  if (byFilename) return byFilename;
+
+  return null;
 }
 
 /**
@@ -357,18 +416,29 @@ export function getLOCFiles(): LOCVolume[] {
       const line = rawLine.trim();
       if (!line || line.startsWith('#') || line === '---') continue;
 
-      // Check if line starts with [[NNNN ...]]
-      const archivedMatch = line.match(/^\[\[(\d{4}(?:-\d+)?)\s*(.*?)\]\]\s*(.*)$/);
-      if (archivedMatch) {
+      // Check if line contains [[...]] wikilink (e.g. [[NNNN title]] or [[NNNN target|alias]])
+      const wikilinkMatch = line.match(/\[\[(.*?)\]\]/);
+      if (wikilinkMatch) {
         totalCount++;
         archivedCount++;
-        const itemId = archivedMatch[1];
-        const itemTitle = archivedMatch[2] || line;
+        const inner = wikilinkMatch[1].trim();
+        const parts = inner.split('|');
+        const target = parts[0].trim();
+        const alias = parts[1] ? parts[1].trim() : target;
+
+        // Extract 4-digit ID from target or alias
+        const idMatch = target.match(/^(\d{4}(?:-\d+)?)/) || alias.match(/^(\d{4}(?:-\d+)?)/);
+        const itemId = idMatch ? idMatch[1] : target.substring(0, 4);
+        let itemTitle = alias.replace(/^(\d{4}(?:-\d+)?)\s*/, '').trim() || target;
+
         const matchingArticle = articles.find((a) => a.id === itemId);
+        if (matchingArticle && !itemTitle) {
+          itemTitle = matchingArticle.frontmatter.title_th;
+        }
 
         items.push({
           id: itemId,
-          title: itemTitle,
+          title: itemTitle || line,
           rawLine: line,
           isArchived: true,
           article: matchingArticle,
