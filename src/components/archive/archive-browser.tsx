@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Article } from "@/lib/content";
 import { CATEGORIES, CategoryMeta, getCategoryForTag } from "@/lib/categories";
-import { Icon } from "@/components/icons";
 import { Thai } from "@/components/thai";
+import { Icon } from "@/components/icons";
 
 interface ArchiveBrowserProps {
   articles: Article[];
@@ -14,34 +14,108 @@ interface ArchiveBrowserProps {
 
 export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
   const router = useRouter();
-  const [focus, setFocus] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const wheelLock = useRef(false);
+  const [focus, setFocus] = useState<number>(0);
 
-  // Filter articles if category selected
-  const filteredArticles = selectedCategory
-    ? articles.filter((a) =>
-        a.frontmatter.tags.some(
-          (t) => getCategoryForTag(t).name.toLowerCase() === selectedCategory.toLowerCase()
-        )
-      )
-    : articles;
+  const loopRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<number, HTMLElement>>(new Map());
+  const isUserScrolling = useRef<boolean>(false);
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Filter articles by category if selected
+  const filteredArticles = useMemo(() => {
+    if (!selectedCategory) return articles;
+    return articles.filter((a) =>
+      a.frontmatter.tags.some((t) => getCategoryForTag(t).name === selectedCategory)
+    );
+  }, [articles, selectedCategory]);
 
   const total = filteredArticles.length;
-  const currentArticle = filteredArticles[focus % (total || 1)] || articles[0];
 
-  const shift = useCallback(
-    (delta: number) => {
-      if (total <= 1) return;
-      setFocus((prev) => (prev + delta + total) % total);
-    },
-    [total]
-  );
+  // We repeat the array 3 times for a seamless virtual infinite loop
+  const CLONES = total > 0 ? 3 : 1;
+  const MIDDLE_OFFSET = total;
+
+  const currentArticle = filteredArticles[focus % Math.max(1, total)] || filteredArticles[0];
+
+  // Scroll to focused index smoothly
+  const scrollToIndex = useCallback((targetIndex: number, smooth = true) => {
+    const el = itemRefs.current.get(targetIndex);
+    const container = loopRef.current;
+    if (!el || !container) return;
+
+    const containerHeight = container.clientHeight;
+    const itemTop = el.offsetTop;
+    const itemHeight = el.offsetHeight;
+    const targetScrollTop = itemTop - containerHeight / 2 + itemHeight / 2;
+
+    container.scrollTo({
+      top: Math.max(0, targetScrollTop),
+      behavior: smooth ? "smooth" : "auto",
+    });
+  }, []);
+
+  // Center on initial mount and when filter changes
+  useEffect(() => {
+    setFocus(0);
+    const timer = setTimeout(() => {
+      scrollToIndex(MIDDLE_OFFSET, false);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [selectedCategory, scrollToIndex, MIDDLE_OFFSET]);
+
+  // Track scroll position to update active focused article
+  const handleScroll = () => {
+    const container = loopRef.current;
+    if (!container || total === 0) return;
+
+    isUserScrolling.current = true;
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+
+    const rect = container.getBoundingClientRect();
+    const centerY = rect.top + rect.height / 2;
+
+    let closestIndex = 0;
+    let minDist = Infinity;
+
+    itemRefs.current.forEach((el, idx) => {
+      if (!el) return;
+      const itemRect = el.getBoundingClientRect();
+      const dist = Math.abs(itemRect.top + itemRect.height / 2 - centerY);
+      if (dist < minDist) {
+        minDist = dist;
+        closestIndex = idx;
+      }
+    });
+
+    const realFocus = closestIndex % total;
+    setFocus(realFocus);
+
+    // Infinite teleport when reaching top or bottom boundary
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+
+    if (scrollTop < 50) {
+      container.scrollTop += total * 140;
+    } else if (scrollTop + clientHeight > scrollHeight - 50) {
+      container.scrollTop -= total * 140;
+    }
+
+    scrollTimeout.current = setTimeout(() => {
+      isUserScrolling.current = false;
+    }, 150);
+  };
+
+  const shift = (delta: number) => {
+    const nextFocus = (focus + delta + total) % total;
+    setFocus(nextFocus);
+    scrollToIndex(MIDDLE_OFFSET + nextFocus, true);
+  };
 
   // Keyboard navigation
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "ArrowDown" || e.key === "j") {
         e.preventDefault();
@@ -50,40 +124,15 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
         e.preventDefault();
         shift(-1);
       } else if (e.key === "Enter" && currentArticle) {
+        e.preventDefault();
         router.push(`/article/${currentArticle.id}`);
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [shift, currentArticle, router]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [focus, total, currentArticle, router]);
 
-  // Mouse wheel navigation with debounce lock
-  const handleWheel = (e: React.WheelEvent) => {
-    if (wheelLock.current) return;
-    if (Math.abs(e.deltaY) > 25) {
-      wheelLock.current = true;
-      shift(e.deltaY > 0 ? 1 : -1);
-      setTimeout(() => {
-        wheelLock.current = false;
-      }, 200);
-    }
-  };
-
-  // Touch swipe support
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-    if (Math.abs(deltaY) > 40) {
-      shift(deltaY < 0 ? 1 : -1);
-    }
-    touchStartY.current = null;
-  };
-
-  // Compute category counts
+  // Category counts
   const categoryCounts = Object.values(CATEGORIES).map((cat: CategoryMeta) => {
     const count = articles.filter((a) =>
       a.frontmatter.tags.some((t) => getCategoryForTag(t).name === cat.name)
@@ -124,26 +173,21 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
         </div>
       </section>
 
-      {/* ══ 3-PANE ENDLESS LOOP BROWSER ══════════════════════════════════════ */}
-      <section
-        className="loop-browser"
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Top Breadcrumb Header */}
-        <div className="browser-top">
-          <div className="meta font-mono text-xs uppercase tracking-wider text-[var(--gold)]">
-            {selectedCategory ? `${selectedCategory} Collection` : "Critical futures"}
-          </div>
-          <div className="meta font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
-            Article archive
-          </div>
-          <div className="meta font-mono text-xs uppercase tracking-wider text-[var(--gold)]">
-            {String(((focus % total) + 1)).padStart(3, "0")} / {String(total).padStart(3, "0")}
-          </div>
+      {/* ══ TOP BREADCRUMB HEADER (SIBLING OUTSIDE GRID) ══════════════════ */}
+      <div className="browser-top">
+        <div className="meta font-mono text-xs uppercase tracking-wider text-[var(--gold)]">
+          {selectedCategory ? `${selectedCategory} Collection` : "Critical futures"}
         </div>
+        <div className="meta font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
+          Article archive
+        </div>
+        <div className="meta font-mono text-xs uppercase tracking-wider text-[var(--gold)] text-right">
+          {String(((focus % total) + 1)).padStart(3, "0")} / {String(total).padStart(3, "0")}
+        </div>
+      </div>
 
+      {/* ══ 3-PANE ENDLESS LOOP BROWSER ══════════════════════════════════════ */}
+      <section className="loop-browser">
         {/* Left Topic Rail */}
         <aside className="topic-rail">
           <div className="meta">Topics</div>
@@ -177,43 +221,54 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
           ))}
         </aside>
 
-        {/* Center Endless Loop Track */}
-        <div className="article-loop">
-          {[-1, 0, 1].map((offset) => {
-            const index = (focus + offset + total) % total;
-            const a = filteredArticles[index];
-            if (!a) return null;
-            const isFocused = offset === 0;
+        {/* Center Fluid Endless Scroll Track */}
+        <div
+          ref={loopRef}
+          className="article-loop overflow-y-auto scroll-smooth"
+          onScroll={handleScroll}
+        >
+          {Array.from({ length: CLONES }).flatMap((_, loopRound) =>
+            filteredArticles.map((a, i) => {
+              const globalIdx = loopRound * total + i;
+              const isFocused = focus === i;
 
-            return (
-              <article
-                key={`${a.id}-${offset}`}
-                className={`loop-item ${isFocused ? "focused" : ""}`}
-                onClick={() => {
-                  if (isFocused) {
-                    router.push(`/article/${a.id}`);
-                  } else {
-                    shift(offset);
-                  }
-                }}
-              >
-                <div className="meta">
-                  {a.id} · {a.frontmatter.date}
-                </div>
-                <h2>
-                  <Thai>{a.frontmatter.title_th}</Thai>
-                </h2>
-                {a.frontmatter.title_en && a.frontmatter.title_en !== a.frontmatter.title_th && (
-                  <h3>{a.frontmatter.title_en}</h3>
-                )}
-                {isFocused && (
-                  <p>
-                    <Thai>{a.frontmatter.description || ""}</Thai>
-                  </p>
-                )}
-              </article>
-            );
-          })}
+              return (
+                <article
+                  key={`${a.id}-round-${loopRound}`}
+                  ref={(el) => {
+                    if (el) itemRefs.current.set(globalIdx, el);
+                    else itemRefs.current.delete(globalIdx);
+                  }}
+                  className={`loop-item cursor-pointer transition-all duration-200 ${
+                    isFocused ? "focused" : ""
+                  }`}
+                  onClick={() => {
+                    if (isFocused) {
+                      router.push(`/article/${a.id}`);
+                    } else {
+                      setFocus(i);
+                      scrollToIndex(globalIdx, true);
+                    }
+                  }}
+                >
+                  <div className="meta">
+                    {a.id} · {a.frontmatter.date}
+                  </div>
+                  <h2>
+                    <Thai>{a.frontmatter.title_th}</Thai>
+                  </h2>
+                  {a.frontmatter.title_en && a.frontmatter.title_en !== a.frontmatter.title_th && (
+                    <h3>{a.frontmatter.title_en}</h3>
+                  )}
+                  {isFocused && (
+                    <p className="mt-3">
+                      <Thai>{a.frontmatter.description || ""}</Thai>
+                    </p>
+                  )}
+                </article>
+              );
+            })
+          )}
         </div>
 
         {/* Right Detail Rail */}
@@ -271,7 +326,7 @@ export function ArchiveBrowser({ articles }: ArchiveBrowserProps) {
           >
             ↓
           </button>
-          <div className="meta">Use arrow keys · Scroll / Swipe</div>
+          <div className="meta">Scroll / Swipe · Arrow keys</div>
         </div>
       </section>
     </div>

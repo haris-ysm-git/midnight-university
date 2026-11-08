@@ -152,7 +152,7 @@ export function Navbar({ onOpenSearch }: { onOpenSearch: () => void }) {
 
       {/* Mobile Bottom Tabs */}
       <nav aria-label="Mobile bottom navigation" className="mobile-tabs">
-        {NAV_ITEMS.slice(0, 5).map((item) => {
+        {NAV_ITEMS.map((item) => {
           const isActive =
             item.href === "/"
               ? pathname === "/"

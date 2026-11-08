@@ -1,6 +1,22 @@
 import { getAllArticles, getAllTagNotes } from "./content";
 import { CATEGORIES, getCategoryForTag } from "./categories";
 
+export interface GraphNode {
+  id: string;
+  name: string;
+  type: "article" | "tag";
+  category: string;
+  color: string;
+  degree: number;
+  articleId?: string;
+  date?: string;
+}
+
+export interface GraphLink {
+  source: string;
+  target: string;
+}
+
 export interface HubNodeData {
   id: string;
   name: string;
@@ -8,8 +24,8 @@ export interface HubNodeData {
   category: string;
   color: string;
   glyph: string;
-  x: number; // percentage 0-100
-  y: number; // percentage 0-100
+  x: number;
+  y: number;
   articles: Array<{
     id: string;
     title: string;
@@ -18,6 +34,8 @@ export interface HubNodeData {
 }
 
 export interface GraphDataset {
+  nodes: GraphNode[];
+  links: GraphLink[];
   hubs: HubNodeData[];
   categories: Array<{
     name: string;
@@ -47,7 +65,7 @@ export function getGraphDataset(): GraphDataset {
     }
   }
 
-  // Also include tag notes with at least 1 reference
+  // Also include tag notes with references
   for (const note of tagNotes) {
     if (!tagMap.has(note.title)) {
       const matching = articles.filter(
@@ -68,25 +86,55 @@ export function getGraphDataset(): GraphDataset {
     }
   }
 
-  // Sort by article count descending and take top 40-50 hubs
-  const sortedTags = Array.from(tagMap.entries()).sort((a, b) => b[1].length - a[1].length);
-  const topHubs = sortedTags.slice(0, 48);
+  // Build Graph Nodes and Links for Obsidian-style force-graph
+  const nodeMap = new Map<string, GraphNode>();
+  const links: GraphLink[] = [];
 
-  // Position nodes in an organic circular/spiral distribution
-  const hubs: HubNodeData[] = topHubs.map(([tag, taggedArticles], index) => {
+  // 1. Tag nodes
+  for (const [tag, taggedArticles] of tagMap.entries()) {
+    const cat = getCategoryForTag(tag);
+    nodeMap.set(tag, {
+      id: tag,
+      name: tag,
+      type: "tag",
+      category: cat.name,
+      color: cat.color,
+      degree: taggedArticles.length,
+    });
+  }
+
+  // 2. Article nodes and Article -> Tag links
+  for (const a of articles) {
+    const primaryCat = a.frontmatter.tags[0] ? getCategoryForTag(a.frontmatter.tags[0]) : CATEGORIES.Other;
+    nodeMap.set(a.id, {
+      id: a.id,
+      name: `${a.id}: ${a.frontmatter.title_th}`,
+      type: "article",
+      category: primaryCat.name,
+      color: primaryCat.color,
+      degree: a.frontmatter.tags.length,
+      articleId: a.id,
+      date: a.frontmatter.date,
+    });
+
+    for (const tag of a.frontmatter.tags) {
+      const cleanTag = tag.trim();
+      if (nodeMap.has(cleanTag)) {
+        links.push({
+          source: a.id,
+          target: cleanTag,
+        });
+      }
+    }
+  }
+
+  const nodes = Array.from(nodeMap.values());
+
+  // Hub list for list-view
+  const sortedTags = Array.from(tagMap.entries()).sort((a, b) => b[1].length - a[1].length);
+  const hubs: HubNodeData[] = sortedTags.map(([tag, taggedArticles], index) => {
     const cat = getCategoryForTag(tag);
     const count = taggedArticles.length;
-
-    // Golden angle spiral distribution
-    const phi = index * 137.5 * (Math.PI / 180);
-    const radius = 18 + Math.sqrt(index) * 8.5; // distributed between ~18% and ~45% radius
-    const cx = 50 + radius * Math.cos(phi);
-    const cy = 50 + radius * Math.sin(phi);
-
-    // Clamp within 8% to 92%
-    const x = Math.max(10, Math.min(90, Math.round(cx * 10) / 10));
-    const y = Math.max(12, Math.min(88, Math.round(cy * 10) / 10));
-
     return {
       id: tag,
       name: tag,
@@ -94,9 +142,9 @@ export function getGraphDataset(): GraphDataset {
       category: cat.name,
       color: cat.color,
       glyph: cat.glyph,
-      x,
-      y,
-      articles: taggedArticles.slice(0, 8),
+      x: 50,
+      y: 50,
+      articles: taggedArticles.slice(0, 10),
     };
   });
 
@@ -107,6 +155,8 @@ export function getGraphDataset(): GraphDataset {
   }));
 
   return {
+    nodes,
+    links,
     hubs,
     categories,
   };

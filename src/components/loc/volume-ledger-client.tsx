@@ -59,21 +59,23 @@ export function VolumeLedgerClient({ volume }: VolumeLedgerClientProps) {
       </div>
 
       {/* Ledger Table Rows */}
-      <div className="ledger">
+      <div className="ledger border-t border-[var(--line)]">
         {visibleItems.map((row) => {
           if (row.isArchived) {
             return (
               <Link
                 key={row.id}
                 href={`/article/${row.id}`}
-                className="archived"
+                className="ledger-row archived group"
               >
                 <span className="status-mark">●</span>
-                <span className="meta">{row.id}</span>
-                <strong>
+                <span className="meta font-mono text-xs">{row.id}</span>
+                <strong className="font-thai text-[var(--text)] group-hover:text-[var(--gold-bright)] transition-colors">
                   <Thai>{row.title}</Thai>
                 </strong>
-                <span>Read</span>
+                <span className="read-badge font-mono text-xs text-[var(--gold)] flex items-center justify-end gap-1">
+                  Read ↗
+                </span>
               </Link>
             );
           }
@@ -81,14 +83,16 @@ export function VolumeLedgerClient({ volume }: VolumeLedgerClientProps) {
           return (
             <div
               key={row.id}
-              className="missing"
+              className="ledger-row missing"
             >
               <span className="status-mark">◌</span>
-              <span className="meta">{row.id}</span>
-              <strong>
+              <span className="meta font-mono text-xs">{row.id}</span>
+              <strong className="font-thai text-[var(--secondary)]">
                 <Thai>{row.title}</Thai>
               </strong>
-              <span>Not yet archived</span>
+              <span className="missing-badge font-mono text-xs text-[var(--muted)] text-right">
+                Not yet archived
+              </span>
             </div>
           );
         })}

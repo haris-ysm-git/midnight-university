@@ -292,13 +292,14 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
                             <Link
                               key={art.id}
                               href={`/article/${art.id}`}
+                              className="expansion-row"
                             >
-                              <div className="meta">{art.id}</div>
-                              <strong>
+                              <div className="meta font-mono text-xs text-[var(--gold)]">{art.id}</div>
+                              <strong className="font-thai text-[var(--text)] font-normal text-sm sm:text-base leading-relaxed">
                                 <Thai>{art.frontmatter.title_th}</Thai>
                               </strong>
-                              <span>
-                                Read article <Icon name="arrow" />
+                              <span className="font-mono text-xs text-[var(--gold)] flex items-center gap-1.5 uppercase whitespace-nowrap">
+                                Read article <Icon name="arrow" size={12} />
                               </span>
                             </Link>
                           ))}
@@ -306,11 +307,14 @@ export function IndexDirectory({ articles, tagNotes }: IndexDirectoryProps) {
                           {currentTab !== "Titles" && (
                             <Link
                               href={entry.href}
+                              className="expansion-row hub-link-row bg-[var(--raised)]/40 px-3 border border-[var(--gold)]/30 my-2 hover:border-[var(--gold)]"
                             >
-                              <div className="meta">✦</div>
-                              <strong>Open keyword archive</strong>
-                              <span>
-                                View hub <Icon name="arrow" />
+                              <div className="meta font-mono text-xs text-[var(--gold)]">HUB</div>
+                              <strong className="font-thai text-[var(--gold)] font-medium text-sm sm:text-base underline underline-offset-4">
+                                Open keyword archive ({entry.label})
+                              </strong>
+                              <span className="font-mono text-xs text-[var(--gold-bright)] flex items-center gap-1.5 uppercase whitespace-nowrap font-medium">
+                                View hub <Icon name="arrow" size={12} />
                               </span>
                             </Link>
                           )}

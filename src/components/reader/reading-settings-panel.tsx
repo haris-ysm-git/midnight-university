@@ -92,14 +92,14 @@ export function ReadingSettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               className={settings.typeface === "serif" ? "active" : ""}
               onClick={() => updateSettings({ typeface: "serif" })}
             >
-              Serif (ทางการ/วรรณกรรม)
+              Serif
             </button>
             <button
               type="button"
               className={settings.typeface === "sans" ? "active" : ""}
               onClick={() => updateSettings({ typeface: "sans" })}
             >
-              Sans (อ่านง่าย)
+              Sans
             </button>
           </div>
         </label>

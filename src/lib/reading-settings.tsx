@@ -43,9 +43,10 @@ function applySettingsToDOM(settings: ReadingSettings) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
 
-  // Apply theme
+  // Apply theme & font mode
   root.setAttribute("data-theme", settings.theme);
   root.setAttribute("data-ambience", settings.ambience ? "on" : "off");
+  root.setAttribute("data-font", settings.typeface);
 
   // Reader CSS variables
   root.style.setProperty("--reader-step", String(settings.fontSizeStep));
@@ -65,10 +66,10 @@ function applySettingsToDOM(settings: ReadingSettings) {
   root.style.setProperty("--reader-width", widthMap[settings.columnWidth] || "720px");
 
   const fontMap: Record<Typeface, string> = {
-    serif: "var(--thai-serif)",
-    sans: "var(--sans)",
+    serif: "var(--font-serif)",
+    sans: "var(--font-sans)",
   };
-  root.style.setProperty("--reader-font", fontMap[settings.typeface] || "var(--thai-serif)");
+  root.style.setProperty("--reader-font", fontMap[settings.typeface] || "var(--font-serif)");
 
   if (settings.theme === "dawn") {
     root.classList.add("theme-dawn");
