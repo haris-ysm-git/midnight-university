@@ -3,10 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "powershell -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\"",
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "npm run prebuild && next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "kw:audit": "node tools/keywords/cli.mjs audit",
+    "kw:rename": "node tools/keywords/cli.mjs rename-links",
+    "kw:stubs": "node tools/keywords/cli.mjs stubs",
+    "kw:autolink": "node tools/keywords/cli.mjs autolink",
+    "kw:test": "node --test tools/keywords/test/keywords.test.mjs"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",

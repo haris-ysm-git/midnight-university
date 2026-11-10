@@ -1,0 +1,5 @@
+---
+aliases:
+  - Nietzsche
+  - นิทเช่
+---

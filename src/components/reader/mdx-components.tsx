@@ -14,7 +14,7 @@ export function getMdxComponents() {
       const text = String(props.children || "");
       const slug = slugifyHeading(text);
       return (
-        <h2 id={slug} className="scroll-mt-24 group flex items-baseline gap-2">
+        <h2 id={slug} className="scroll-mt-24 group flex items-baseline gap-2 font-serif font-medium text-[24px] leading-[1.5] mt-[2.2em] mb-[0.8em] text-[var(--text)]">
           <span className="flex-1">{props.children}</span>
           <a
             href={`#${slug}`}
@@ -31,7 +31,7 @@ export function getMdxComponents() {
       const text = String(props.children || "");
       const slug = slugifyHeading(text);
       return (
-        <h3 id={slug} className="scroll-mt-24 group flex items-baseline gap-2">
+        <h3 id={slug} className="scroll-mt-24 group flex items-baseline gap-2 font-serif font-medium text-[24px] leading-[1.5] mt-[2.2em] mb-[0.8em] text-[var(--text)]">
           <span className="flex-1">{props.children}</span>
           <a
             href={`#${slug}`}
@@ -192,14 +192,7 @@ export function getMdxComponents() {
 
       // Unresolved wikilinks
       if (href === "#unresolved" || href.startsWith("#unresolved")) {
-        return (
-          <span
-            className="unresolved-wikilink text-[var(--muted)] border-b border-dotted border-[var(--muted)] cursor-help inline-block px-0.5"
-            title={props.title ? `Unresolved link: ${props.title}` : "Unresolved link"}
-          >
-            {props.children}
-          </span>
-        );
+        return <span className="unresolved-text">{props.children}</span>;
       }
 
       // Footnote references
@@ -218,7 +211,7 @@ export function getMdxComponents() {
         return (
           <Link
             href={href}
-            className="internal text-[var(--gold-bright)] border-b border-dotted border-[var(--gold)] hover:bg-[var(--gold)] hover:text-[var(--bg)] transition-colors rounded-xs px-0.5 no-underline"
+            className="internal text-[var(--gold)] underline decoration-1 underline-offset-[0.22em] decoration-[color-mix(in_srgb,var(--gold)_55%,transparent)] hover:text-[var(--gold-bright)] hover:decoration-[var(--gold-bright)] transition-[color,text-decoration-color] duration-150 cursor-pointer"
             {...props}
           >
             {props.children}

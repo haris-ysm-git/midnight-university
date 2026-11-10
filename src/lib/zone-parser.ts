@@ -107,12 +107,12 @@ export function parseArticleZones(
 
     // 3. Collect Opening Matter & Find Body Start
     // Body start heuristics:
-    // (a) Heading of depth 3 or 4: /^###\s+/ or /^####\s+/
+    // (a) Heading of depth 2, 3 or 4: /^##\s+/, /^###\s+/ or /^####\s+/
     // (b) Paragraph beginning with bold speaker: /^\*\*[^*]+\*\*\s*:/
     let bodyStartIndex = -1;
     for (let j = i; j < lines.length; j++) {
       const line = lines[j].trim();
-      if (/^###\s+/.test(line) || /^####\s+/.test(line)) {
+      if (/^##\s+/.test(line) || /^###\s+/.test(line) || /^####\s+/.test(line)) {
         bodyStartIndex = j;
         break;
       }
@@ -263,10 +263,16 @@ export function parseArticleZones(
       }
     }
 
+    // Ensure all introductory paragraphs are part of the body markdown pipeline
+    if (result.openingMatter.introduction.length > 0) {
+      bodyLines = [...result.openingMatter.introduction, "", ...bodyLines];
+      result.openingMatter.introduction = [];
+    }
+
     // 6. Build Table of Contents and anchors from body headings
     let processedBodyText = bodyLines.join("\n");
 
-    const headingRegex = /^(#{3,4})\s+(.+)$/gm;
+    const headingRegex = /^(#{2,4})\s+(.+)$/gm;
     let headingMatch;
     while ((headingMatch = headingRegex.exec(processedBodyText)) !== null) {
       const depth = headingMatch[1].length;

@@ -1,0 +1,10 @@
+{
+  "description": "A bilingual digital archive for readers and researchers exploring Thai history, politics, philosophy, and human rights through essays, searchable indexes, and topic connections.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

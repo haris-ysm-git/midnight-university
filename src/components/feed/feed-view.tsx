@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Article } from "@/lib/content";
 import { getCategoryForTag } from "@/lib/categories";
@@ -14,6 +14,8 @@ interface FeedViewProps {
 export function FeedView({ articles }: FeedViewProps) {
   const [mode, setMode] = useState<"list" | "calendar" | "timeline">("list");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [flashYear, setFlashYear] = useState<number | null>(null);
+  const flashTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Group articles by year
   const { yearGroups, years, monthDensity } = useMemo(() => {
@@ -48,12 +50,39 @@ export function FeedView({ articles }: FeedViewProps) {
     };
   }, [articles]);
 
-  const scrollToYear = (year: number) => {
+  const scrollToYear = useCallback((year: number) => {
     const el = document.getElementById(`year-${year}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
+    if (!el) return;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+    history.replaceState(null, "", `#year-${year}`);
+    if (!prefersReducedMotion) {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      setFlashYear(year);
+      flashTimerRef.current = setTimeout(() => setFlashYear(null), 1200);
     }
-  };
+  }, []);
+
+  // Switch to list view + scroll when clicking from calendar/heatmap
+  const goToYear = useCallback((year: number) => {
+    setMode("list");
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollToYear(year)));
+  }, [scrollToYear]);
+
+  // On mount: handle hash in URL
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith("#year-")) {
+      const year = parseInt(hash.replace("#year-", ""), 10);
+      if (!isNaN(year)) {
+        setMode("list");
+        requestAnimationFrame(() => requestAnimationFrame(() => scrollToYear(year)));
+      }
+    }
+    return () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    };
+  }, [scrollToYear]);
 
   return (
     <main className="standard-page">
@@ -99,7 +128,7 @@ export function FeedView({ articles }: FeedViewProps) {
           <button
             key={year}
             type="button"
-            onClick={() => scrollToYear(year)}
+            onClick={() => goToYear(year)}
           >
             {year}
           </button>
@@ -119,7 +148,7 @@ export function FeedView({ articles }: FeedViewProps) {
             <div key={year} className="density-year">
               <button
                 type="button"
-                onClick={() => scrollToYear(year)}
+                onClick={() => goToYear(year)}
               >
                 {year}
               </button>
@@ -147,8 +176,20 @@ export function FeedView({ articles }: FeedViewProps) {
           {years.map((year) => {
             const list = yearGroups.get(year) || [];
             return (
-              <section key={year} id={`year-${year}`} className="year-group">
-                <div className="year-heading">
+              <section
+                key={year}
+                id={`year-${year}`}
+                className="year-group"
+                style={{ scrollMarginTop: "calc(84px + 16px)" }}
+              >
+                <div
+                  className="year-heading"
+                  style={
+                    flashYear === year
+                      ? { transition: "color 0.2s", color: "var(--gold)" }
+                      : { transition: "color 0.6s" }
+                  }
+                >
                   <h2>{year}</h2>
                   <div className="meta">
                     {list.length} {list.length === 1 ? "entry" : "entries"}
@@ -249,8 +290,7 @@ export function FeedView({ articles }: FeedViewProps) {
                         className={count > 0 ? "has-entry" : ""}
                         onClick={() => {
                           if (count > 0) {
-                            setMode("list");
-                            scrollToYear(year);
+                            goToYear(year);
                           }
                         }}
                       >

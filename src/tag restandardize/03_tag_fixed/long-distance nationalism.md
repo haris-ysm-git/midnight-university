@@ -1,0 +1,5 @@
+---
+aliases:
+  - ชาตินิยมทางไกล
+---
+related [[Nationalism]]

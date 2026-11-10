@@ -1,0 +1,5 @@
+---
+aliases:
+  - ทุนนิยมแบบเสรี
+---
+related [[Capitalism]]

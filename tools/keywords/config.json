@@ -1,0 +1,13 @@
+{
+  "notesDir": "md_archive/03.tag",
+  "articlesDir": "md_archive/01.RAW MD",
+  "density": 1500,
+  "firstOccurrenceOnly": true,
+  "minThaiLength": 3,
+  "linkInsideEmphasis": false,
+  "stoplist": [
+    "History", "Philosophy", "Knowledge", "nature", "language", "object",
+    "subject", "reality", "public", "private", "school", "violence",
+    "equality", "representation", "dilemma", "mutation", "nurture"
+  ]
+}

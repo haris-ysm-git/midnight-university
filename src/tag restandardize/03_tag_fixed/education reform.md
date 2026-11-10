@@ -1,0 +1,5 @@
+---
+aliases:
+  - การปฏิรูปโรงเรียน
+  - school reform
+---

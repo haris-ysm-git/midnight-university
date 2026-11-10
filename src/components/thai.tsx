@@ -9,17 +9,14 @@ export function Thai({
 }: {
   children?: React.ReactNode;
   className?: string;
-  as?: any;
+  as?: React.ElementType;
 }) {
-  if (typeof children !== "string") {
-    return (
-      <Component className={className} lang="th">
-        {children}
-      </Component>
-    );
-  }
+  const isString = typeof children === "string";
 
   const parts = useMemo(() => {
+    if (!isString || typeof children !== "string") {
+      return null;
+    }
     if (typeof Intl === "undefined" || !("Segmenter" in Intl)) {
       return [children];
     }
@@ -29,7 +26,15 @@ export function Thai({
     } catch {
       return [children];
     }
-  }, [children]);
+  }, [children, isString]);
+
+  if (!isString || !parts) {
+    return (
+      <Component className={className} lang="th">
+        {children}
+      </Component>
+    );
+  }
 
   return (
     <Component className={className} lang="th">

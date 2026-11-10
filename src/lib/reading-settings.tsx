@@ -47,6 +47,7 @@ function applySettingsToDOM(settings: ReadingSettings) {
   root.setAttribute("data-theme", settings.theme);
   root.setAttribute("data-ambience", settings.ambience ? "on" : "off");
   root.setAttribute("data-font", settings.typeface);
+  root.setAttribute("data-reading-font", settings.typeface === "sans" ? "sans" : "serif");
 
   // Reader CSS variables
   root.style.setProperty("--reader-step", String(settings.fontSizeStep));

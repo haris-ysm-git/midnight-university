@@ -6,6 +6,7 @@ import { HubData } from "@/lib/backlinks";
 import { TagHubNote } from "@/lib/content";
 import { Icon } from "@/components/icons";
 import { Thai } from "@/components/thai";
+import { LocalGraph } from "@/components/keyword/local-graph";
 
 interface KeywordHubClientProps {
   hubData: HubData;
@@ -108,32 +109,16 @@ export function KeywordHubClient({
         </section>
 
         {/* Right: Local Mini-Graph & Co-occurring Keywords */}
-        <aside className="space-y-8">
+        <aside className="space-y-8 min-w-0 overflow-hidden">
           <div>
             <div className="meta font-mono text-xs uppercase tracking-widest text-[var(--muted)] mb-4">
               Local graph
             </div>
-            <div className="mini-graph border border-[var(--line)] p-4 bg-[var(--sunken)] rounded-xs">
-              <svg viewBox="0 0 300 180" className="w-full h-auto">
-                <g className="edges stroke-[rgba(201,168,124,0.35)] stroke-1 fill-none">
-                  <path d="M150 90 L55 44 M150 90 L245 40 M150 90 L230 140 M150 90 L70 145 M150 90 L154 25" />
-                </g>
-                <circle cx={150} cy={90} r={18} fill="var(--gold)" />
-                <circle cx={55} cy={44} r={9} fill="var(--gold)" opacity={0.6} />
-                <circle cx={245} cy={40} r={11} fill="var(--gold)" opacity={0.6} />
-                <circle cx={230} cy={140} r={8} fill="var(--gold)" opacity={0.6} />
-                <circle cx={70} cy={145} r={12} fill="var(--gold)" opacity={0.6} />
-                <circle cx={154} cy={25} r={8} fill="var(--gold)" opacity={0.6} />
-                <text
-                  x={150}
-                  y={124}
-                  textAnchor="middle"
-                  className="font-mono text-[9px] uppercase tracking-wider fill-[var(--secondary)]"
-                >
-                  {keyword.length > 18 ? keyword.substring(0, 16) + "…" : keyword}
-                </text>
-              </svg>
-            </div>
+            <LocalGraph
+              keyword={keyword}
+              articles={articles.slice(0, 40)}
+              relatedKeywords={coOccurringKeywords.slice(0, 12)}
+            />
           </div>
 
           {topCoOccurring.length > 0 && (

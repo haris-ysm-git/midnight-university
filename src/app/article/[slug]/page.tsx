@@ -16,29 +16,7 @@ export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const articles = getAllArticles();
-
-  const params: { slug: string }[] = [];
-
-  for (const article of articles) {
-    // 1. Canonical 4-digit ID (e.g. "0002", "0811", "1177")
-    params.push({ slug: article.id });
-
-    // 2. Short English slug (< 30 chars) to avoid Windows MAX_PATH limits
-    if (article.slug && article.slug !== article.id && article.slug.length < 30) {
-      params.push({ slug: article.slug });
-    }
-
-    // 3. Unpadded numeric string (e.g. "2", "811")
-    const num = parseInt(article.id, 10);
-    if (!isNaN(num)) {
-      const numStr = String(num);
-      if (numStr !== article.id) {
-        params.push({ slug: numStr });
-      }
-    }
-  }
-
-  return params;
+  return articles.map((article) => ({ slug: article.id }));
 }
 
 export default async function ArticlePage({ params }: Props) {

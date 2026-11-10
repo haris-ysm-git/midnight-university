@@ -1,0 +1,5 @@
+---
+aliases:
+  - ยุคกลาง
+  - Middle Age
+---

@@ -328,12 +328,16 @@ export function resolveObsidianLinks(
     }
   }
 
-  return content.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
-    const cleanP1 = p1.replace(/^\[+|\]+$/g, '');
-    const parts = cleanP1.split('|');
-    const target = parts[0].trim();
-    const alias = parts[1] ? parts[1].trim() : target;
+  // Helper to resolve a single target and alias
+  const resolveTarget = (targetRaw: string, aliasRaw?: string, isHeading: boolean = false): string => {
+    const target = targetRaw.trim();
+    const alias = aliasRaw !== undefined && aliasRaw.trim() !== '' ? aliasRaw.trim() : target;
     const targetNormalized = target.toLowerCase();
+
+    // Inside headings, render display text only, never links
+    if (isHeading) {
+      return alias;
+    }
 
     // 1. Resolve by article ID (4 digits + optional suffix)
     const idPrefixMatch = target.match(/^(\d{4}(?:-\d+)?)/);
@@ -368,15 +372,42 @@ export function resolveObsidianLinks(
       return `[${alias}](/keyword/${encodeURIComponent(slugify(target))})`;
     }
 
-    // 5. Unresolved link: DO NOT break as a 404. Render as markdown link to #unresolved with title attribute.
+    // 5. Unresolved link: print build warning and render display text as plain text without brackets
+    console.warn(`[resolveObsidianLinks] Unresolved wikilink: "[[${target}]]" in ${sourceFile}`);
     buildReport.add({
       type: 'unresolved_link',
       file: sourceFile,
       message: `Unresolved wikilink: [[${target}]]`,
     });
 
-    const safeTitle = target.replace(/"/g, "'");
-    return `[${alias}](#unresolved "${safeTitle}")`;
+    return alias;
+  };
+
+  // Protect fenced code blocks (```...```) and inline code (`...`)
+  const codeBlocks: string[] = [];
+  const protectedContent = content.replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (match) => {
+    codeBlocks.push(match);
+    return `@@@CODEBLOCK_${codeBlocks.length - 1}@@@`;
+  });
+
+  // Process line-by-line to detect headings (#, ##, ###, ####)
+  const lines = protectedContent.split(/\r?\n/);
+  const processedLines = lines.map((line) => {
+    const isHeading = /^#{1,6}\s+/.test(line.trim());
+    return line.replace(/\[\[(.*?)\]\]/g, (_, p1) => {
+      const cleanP1 = p1.replace(/^\[+|\]+$/g, '');
+      const parts = cleanP1.split('|');
+      const target = parts[0];
+      const alias = parts[1];
+      return resolveTarget(target, alias, isHeading);
+    });
+  });
+
+  const fullProcessed = processedLines.join('\n');
+
+  // Restore code blocks
+  return fullProcessed.replace(/@@@CODEBLOCK_(\d+)@@@/g, (_, idx) => {
+    return codeBlocks[parseInt(idx, 10)] || '';
   });
 }
 

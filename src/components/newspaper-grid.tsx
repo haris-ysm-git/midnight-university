@@ -125,7 +125,7 @@ function packTiles(cols: number, rows: number, paragraphs: RandomParagraph[], ta
 
   // 3. Final fill for any remaining holes or "bottom of page" padding
   let tagIdx = shuffledTasks.filter(t => t.type === 'tag').length;
-  let fi = 0;
+  const fi = 0;
   
   // Find current max row
   const currentMaxRow = tiles.reduce((m, t) => Math.max(m, t.row + t.h - 1), 1);
@@ -134,7 +134,8 @@ function packTiles(cols: number, rows: number, paragraphs: RandomParagraph[], ta
   for (let r = 1; r <= targetEndRow; r++) {
     for (let c = 1; c <= cols; c++) {
       if (!grid[r][c]) {
-        let w = 1, h = 1;
+        let w = 1;
+        const h = 1;
         // Occasionally try 2x1
         if (c + 1 <= cols && !grid[r][c+1] && Math.random() > 0.7) { w = 2; }
         

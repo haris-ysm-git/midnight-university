@@ -35,6 +35,7 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [repelStrength, setRepelStrength] = useState(-140);
   const [linkDistance, setLinkDistance] = useState(45);
+  const [nodeScale, setNodeScale] = useState(1.0);
   const [localGraphHops, setLocalGraphHops] = useState<number | null>(null); // null = global, 1-3 = local
   const [isListView, setIsListView] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -119,12 +120,21 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
 
   // Apply d3 force parameters when sliders change
   useEffect(() => {
-    if (fgRef.current) {
-      fgRef.current.d3Force("charge")?.strength(repelStrength);
-      fgRef.current.d3Force("link")?.distance(linkDistance);
-      fgRef.current.d3ReheatSimulation();
-    }
+    if (!fgRef.current) return;
+    const fg = fgRef.current;
+    fg.d3Force("charge")?.strength(repelStrength);
+    fg.d3Force("link")?.distance(linkDistance);
+    // Restart the simulation with enough energy to visibly re-layout
+    fg.d3ReheatSimulation();
   }, [repelStrength, linkDistance]);
+
+  // When hops changes and no node is selected, auto-select the most-connected node
+  useEffect(() => {
+    if (localGraphHops !== null && !selectedNode) {
+      const top = [...nodes].sort((a, b) => b.degree - a.degree)[0];
+      if (top) setSelectedNode(top);
+    }
+  }, [localGraphHops, nodes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Center on search enter
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -152,26 +162,47 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
         (hoverNode && !isHovered && !isNeighbor) ||
         (searchQuery && !matchesSearch);
 
-      const radius = Math.max(3.5, Math.min(18, Math.sqrt(node.degree + 1) * 3));
+      // nodeScale multiplier lets user adjust dot size from slider
+      const baseR = Math.max(4, Math.min(20, Math.sqrt(node.degree + 1) * 3)) * nodeScale;
+      const radius = baseR;
 
-      // Draw node circle
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
 
-      if (isDimmed) {
-        ctx.fillStyle = "rgba(100, 100, 100, 0.15)";
-      } else if (isSelected || isHovered) {
-        ctx.fillStyle = "var(--gold-bright, #E3C58F)";
-      } else {
-        ctx.fillStyle = node.color || "#C9A87C";
-      }
-      ctx.fill();
-
-      // Outer accent ring if hovered or selected
-      if (isSelected || isHovered || matchesSearch) {
-        ctx.lineWidth = 2 / globalScale;
-        ctx.strokeStyle = isSelected ? "var(--gold, #C9A87C)" : "rgba(227, 197, 143, 0.8)";
+      if (node.type === "article") {
+        // ── HOLLOW circle for articles ──
+        if (isDimmed) {
+          ctx.strokeStyle = "rgba(120,120,120,0.18)";
+        } else if (isSelected || isHovered) {
+          ctx.fillStyle = "rgba(227,197,143,0.12)";
+          ctx.fill();
+          ctx.strokeStyle = "#E3C58F";
+        } else if (matchesSearch) {
+          ctx.fillStyle = "rgba(201,168,124,0.1)";
+          ctx.fill();
+          ctx.strokeStyle = "#C9A87C";
+        } else {
+          ctx.fillStyle = `${node.color}18`;
+          ctx.fill();
+          ctx.strokeStyle = node.color || "#C9A87C";
+        }
+        ctx.lineWidth = (isSelected || isHovered ? 2 : 1.2) / globalScale;
         ctx.stroke();
+      } else {
+        // ── FILLED circle for tags/keywords ──
+        if (isDimmed) {
+          ctx.fillStyle = "rgba(100,100,100,0.15)";
+        } else if (isSelected || isHovered) {
+          ctx.fillStyle = "#E3C58F";
+        } else {
+          ctx.fillStyle = node.color || "#C9A87C";
+        }
+        ctx.fill();
+        if (isSelected || isHovered || matchesSearch) {
+          ctx.lineWidth = 2 / globalScale;
+          ctx.strokeStyle = isSelected ? "#C9A87C" : "rgba(227,197,143,0.8)";
+          ctx.stroke();
+        }
       }
 
       // Draw label when zoomed in or important
@@ -188,9 +219,8 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
         const labelText = node.name.length > 20 ? node.name.slice(0, 18) + "…" : node.name;
         const textY = node.y + radius + fontSize / 1.5;
 
-        // Label background badge
         const textWidth = ctx.measureText(labelText).width;
-        ctx.fillStyle = "rgba(21, 21, 20, 0.85)";
+        ctx.fillStyle = "rgba(21,21,20,0.85)";
         ctx.fillRect(
           node.x - textWidth / 2 - 3 / globalScale,
           textY - fontSize / 2 - 1 / globalScale,
@@ -198,11 +228,11 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
           fontSize + 2 / globalScale
         );
 
-        ctx.fillStyle = isSelected ? "var(--gold, #C9A87C)" : "#ECE8E1";
+        ctx.fillStyle = isSelected ? "#C9A87C" : "#ECE8E1";
         ctx.fillText(labelText, node.x, textY);
       }
     },
-    [hoverNode, selectedNode, searchQuery, adjacencyMap]
+    [hoverNode, selectedNode, searchQuery, adjacencyMap, nodeScale]
   );
 
   return (
@@ -292,7 +322,7 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
 
       {/* ══ COLLAPSIBLE PHYSICS & LOCAL GRAPH PANEL ═════════════════════════ */}
       {showSettings && (
-        <div className="physics-panel bg-[var(--raised)] border border-[var(--line)] p-4 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-6 rounded-xs">
+        <div className="physics-panel bg-[var(--raised)] border border-[var(--line)] p-4 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-6 rounded-xs">
           <div>
             <label className="block font-mono text-[10px] text-[var(--muted)] uppercase tracking-wider mb-2 flex justify-between">
               <span>Repel Strength</span>
@@ -319,6 +349,22 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
               max="120"
               value={linkDistance}
               onChange={(e) => setLinkDistance(parseInt(e.target.value, 10))}
+              className="w-full accent-[var(--gold)]"
+            />
+          </div>
+
+          <div>
+            <label className="block font-mono text-[10px] text-[var(--muted)] uppercase tracking-wider mb-2 flex justify-between">
+              <span>Node Size</span>
+              <b className="text-[var(--gold)]">{nodeScale.toFixed(1)}×</b>
+            </label>
+            <input
+              type="range"
+              min="0.4"
+              max="2.5"
+              step="0.1"
+              value={nodeScale}
+              onChange={(e) => setNodeScale(parseFloat(e.target.value))}
               className="w-full accent-[var(--gold)]"
             />
           </div>
@@ -391,10 +437,10 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
             backgroundColor="var(--sunken, #151514)"
             nodeCanvasObject={nodeCanvasObject}
             nodePointerAreaPaint={(node: any, color, ctx) => {
-              const radius = Math.max(3.5, Math.min(18, Math.sqrt(node.degree + 1) * 3));
+              const radius = Math.max(4, Math.min(20, Math.sqrt(node.degree + 1) * 3)) * nodeScale;
               ctx.fillStyle = color;
               ctx.beginPath();
-              ctx.arc(node.x, node.y, radius + 4, 0, 2 * Math.PI, false);
+              ctx.arc(node.x, node.y, radius + 5, 0, 2 * Math.PI, false);
               ctx.fill();
             }}
             linkColor={(link: any) => {
@@ -421,12 +467,47 @@ export function GraphPageClient({ dataset }: GraphPageClientProps) {
                 fgRef.current.zoom(2.2, 800);
               }
             }}
-            cooldownTicks={120}
+            d3AlphaMin={0.001}
+            d3AlphaDecay={0.02}
           />
+
+          {/* Zoom controls */}
+          <div className="absolute top-3 right-3 flex flex-col gap-1 z-20">
+            <button
+              type="button"
+              onClick={() => { const z = fgRef.current?.zoom(); fgRef.current?.zoom(z * 1.4, 300); }}
+              className="w-7 h-7 flex items-center justify-center font-mono text-sm text-[var(--gold)] bg-[var(--raised)]/90 border border-[var(--line)] hover:border-[var(--gold)] transition-colors"
+              aria-label="Zoom in"
+            >+</button>
+            <button
+              type="button"
+              onClick={() => fgRef.current?.zoomToFit(600, 24)}
+              className="w-7 h-7 flex items-center justify-center font-mono text-[8px] text-[var(--muted)] bg-[var(--raised)]/90 border border-[var(--line)] hover:border-[var(--gold)] uppercase tracking-wider transition-colors"
+              aria-label="Fit all"
+            >fit</button>
+            <button
+              type="button"
+              onClick={() => { const z = fgRef.current?.zoom(); fgRef.current?.zoom(z * 0.7, 300); }}
+              className="w-7 h-7 flex items-center justify-center font-mono text-sm text-[var(--gold)] bg-[var(--raised)]/90 border border-[var(--line)] hover:border-[var(--gold)] transition-colors"
+              aria-label="Zoom out"
+            >−</button>
+          </div>
+
+          {/* Node size quick controls */}
+          <div className="absolute top-3 left-3 z-20 bg-[var(--raised)]/90 border border-[var(--line)] px-2.5 py-2 flex flex-col gap-1.5">
+            <span className="font-mono text-[8px] text-[var(--muted)] uppercase tracking-wider">Dot size</span>
+            <div className="flex gap-1 items-center">
+              <button type="button" onClick={() => setNodeScale((s) => Math.max(0.4, s - 0.2))}
+                className="w-5 h-5 flex items-center justify-center font-mono text-xs text-[var(--gold)] border border-[var(--line)] hover:border-[var(--gold)]">−</button>
+              <span className="font-mono text-[9px] text-[var(--gold)] w-7 text-center">{nodeScale.toFixed(1)}×</span>
+              <button type="button" onClick={() => setNodeScale((s) => Math.min(2.5, s + 0.2))}
+                className="w-5 h-5 flex items-center justify-center font-mono text-xs text-[var(--gold)] border border-[var(--line)] hover:border-[var(--gold)]">+</button>
+            </div>
+          </div>
 
           {/* Selected Node Inspector Drawer */}
           {selectedNode && (
-            <aside className="selected-inspector absolute top-4 right-4 z-30 bg-[var(--raised)]/95 border border-[var(--line-strong)] p-4 rounded-xs shadow-xl max-w-sm backdrop-blur-sm animate-in fade-in">
+            <aside className="selected-inspector absolute top-4 right-14 z-30 bg-[var(--raised)]/95 border border-[var(--line-strong)] p-4 rounded-xs shadow-xl max-w-sm backdrop-blur-sm animate-in fade-in">
               <div className="flex justify-between items-start gap-4 mb-2">
                 <div>
                   <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--gold)]">
