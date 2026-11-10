@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild": "powershell -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\"",
+    "prebuild": "rimraf .next",
     "dev": "next dev",
     "build": "npm run prebuild && next build --webpack",
     "start": "next start",
@@ -37,6 +37,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "rimraf": "^6.1.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
